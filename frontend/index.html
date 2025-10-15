@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вход - ООО Торгаши</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏢 ООО Торгаши</h1>
+            <p>Вход в систему</p>
+        </header>
+        
+        <main>
+            <div class="login-card">
+                <h2>Авторизация</h2>
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="email">Email:</label>
+                        <input type="email" id="email" name="email" required 
+                               placeholder="Введите email">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password">Пароль:</label>
+                        <input type="password" id="password" name="password" required
+                               placeholder="Введите пароль">
+                    </div>
+                    
+                    <button type="submit" class="btn-primary">Войти</button>
+                </form>
+                
+                <div id="message" class="message"></div>
+                
+                <details class="demo-accounts">
+                    <summary style="cursor:pointer;">Показать тестовые аккаунты</summary>
+                    <div style="margin-top:10px;">
+                        <p><strong>Бухгалтер (филиал 1):</strong> accountant@fintorg.ru / password123</p>
+                        <p><strong>Бухгалтер (филиал 2):</strong> accountant2@fintorg.ru / acc123</p>
+                        <p><strong>Бухгалтер (филиал 3):</strong> accountant3@fintorg.ru / acc123</p>
+                        <p><strong>Менеджер:</strong> manager@fintorg.ru / password123</p>
+                        <p><strong>Админ:</strong> admin@fintorg.ru / admin123</p>
+                        <p><small>Кликни по кнопке ниже, чтобы автозаполнить форму</small></p>
+                    </div>
+                </details>
+
+                <!-- Кнопка для быстрого заполнения -->
+                <div style="text-align: center; margin-top: 15px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+                    <button type="button" onclick="fillDemoAccount('accountant@fintorg.ru','password123')" class="btn-secondary">Бухгалтер (филиал 1)</button>
+                    <button type="button" onclick="fillDemoAccount('accountant2@fintorg.ru','acc123')" class="btn-secondary">Бухгалтер (филиал 2)</button>
+                    <button type="button" onclick="fillDemoAccount('accountant3@fintorg.ru','acc123')" class="btn-secondary">Бухгалтер (филиал 3)</button>
+                    <button type="button" onclick="fillDemoAccount('manager@fintorg.ru','password123')" class="btn-secondary">Менеджер</button>
+                    <button type="button" onclick="fillDemoAccount('admin@fintorg.ru','admin123')" class="btn-secondary">Админ</button>
+                </div>
+            </div>
+        </main>
+        
+        <footer>
+            <p style="opacity:0.8; font-size: 0.9rem;">ООО Торгаши — учебный проект</p>
+        </footer>
+    </div>
+    
+    <script src="auth.js"></script>
+    <script>
+        // Функция для быстрого заполнения формы
+        function fillDemoAccount(email, password) {
+            document.getElementById('email').value = email || 'admin@fintorg.ru';
+            document.getElementById('password').value = password || 'admin123';
+            document.getElementById('message').innerHTML = '✅ Данные заполнены! Нажми "Войти"';
+            document.getElementById('message').className = 'message success';
+        }
+
+        // Автозаполнение при загрузке страницы для удобства тестирования
+        document.addEventListener('DOMContentLoaded', function() {
+            fillDemoAccount('admin@fintorg.ru','admin123');
+        });
+    </script>
+</body>
+</html>

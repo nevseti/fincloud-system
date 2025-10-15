@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вход - ООО Торгаши</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏢 ООО Торгаши</h1>
+            <p>Вход в систему</p>
+        </header>
+        
+        <main>
+            <div class="login-card">
+                <h2>Авторизация</h2>
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="email">Email:</label>
+                <input type="email" id="email" name="email" required 
+                               value="admin@fintorg.ru">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password">Пароль:</label>
+                <input type="password" id="password" name="password" required
+                               value="admin123">
+                    </div>
+                    
+                    <button type="submit" class="btn-primary">Войти</button>
+                </form>
+                
+                <div id="message" class="message"></div>
+                
+                <div class="demo-accounts">
+                    <details class="demo-accounts">
+                        <summary>Показать тестовые аккаунты</summary>
+                        <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
+                            <button type="button" onclick="fillDemo('accountant@fintorg.ru','password123')" class="btn-secondary">Бухгалтер (филиал 1)</button>
+                            <button type="button" onclick="fillDemo('accountant2@fintorg.ru','acc123')" class="btn-secondary">Бухгалтер (филиал 2)</button>
+                            <button type="button" onclick="fillDemo('accountant3@fintorg.ru','acc123')" class="btn-secondary">Бухгалтер (филиал 3)</button>
+                            <button type="button" onclick="fillDemo('manager@fintorg.ru','password123')" class="btn-secondary">Менеджер</button>
+                            <button type="button" onclick="fillDemo('admin@fintorg.ru','admin123')" class="btn-secondary">Админ</button>
+                        </div>
+                    </details>
+                </div>
+            </div>
+        </main>
+        
+        <footer>
+            <p style="opacity:0.8; font-size: 0.9rem;">ООО Торгаши — учебный проект</p>
+        </footer>
+    </div>
+    
+    <script src="auth.js"></script>
+    <script>
+        function fillDemo(email, password){
+            document.getElementById('email').value = email;
+            document.getElementById('password').value = password;
+            const msg = document.getElementById('message');
+            if (msg){ msg.textContent = '✅ Данные заполнены — нажмите Войти'; msg.className = 'message success'; }
+        }
+    </script>
+</body>
+</html>

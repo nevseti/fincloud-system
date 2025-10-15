@@ -1,0 +1,60 @@
+version: '3.9'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: fincloud-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: auth_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db-init:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+
+  auth-service:
+    build: ./auth-service
+    container_name: auth-service
+    environment:
+      AUTH_DATABASE_URL: postgresql://postgres:postgres@db:5432/auth_db
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+
+  finance-service:
+    build: ./finance-service
+    container_name: finance-service
+    environment:
+      FINANCE_DATABASE_URL: postgresql://postgres:postgres@db:5432/finance_db
+    depends_on:
+      - db
+    ports:
+      - "8001:8001"
+
+  report-service:
+    build: ./report-service
+    container_name: report-service
+    environment:
+      FINANCE_SERVICE_URL: http://finance-service:8001
+    depends_on:
+      - finance-service
+    ports:
+      - "8002:8002"
+
+  frontend:
+    build: ./frontend
+    container_name: fincloud-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - auth-service
+      - finance-service
+      - report-service
+
+volumes:
+  pgdata:
+
+

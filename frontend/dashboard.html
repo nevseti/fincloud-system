@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Дашборд - ООО Торгаши</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="topbar">
+                <div class="brand"><span class="logo">🏢</span> ООО Торгаши</div>
+                <div class="actions">
+                    <span id="userInfo">Загрузка...</span>
+                    <button id="logoutBtn" class="btn-secondary">Выйти</button>
+                </div>
+            </div>
+            <div class="dashboard-header">
+                <div>
+                    <h1>Дашборд финансовой системы</h1>
+                    <p id="pageTitle" style="opacity:.8">Сводные показатели и операции</p>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <!-- Карточки с балансом -->
+            <div class="balance-cards">
+                <div class="balance-card">
+                    <h3>Общий баланс</h3>
+                    <div class="amount" id="currentBalance">₽0</div>
+                </div>
+                <div class="balance-card" style="background: linear-gradient(135deg, #28a745, #20c997);">
+                    <h3>Доходы</h3>
+                    <div class="amount" id="totalIncome">₽0</div>
+                </div>
+                <div class="balance-card" style="background: linear-gradient(135deg, #dc3545, #e83e8c);">
+                    <h3>Расходы</h3>
+                    <div class="amount" id="totalExpense">₽0</div>
+                </div>
+            </div>
+
+            <!-- Форма создания операции -->
+            <div class="dashboard-card">
+                <h2>➕ Новая операция</h2>
+                <form id="operationForm">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                        <div class="form-group">
+                            <label for="type">Тип операции:</label>
+                            <select id="type" name="type" required>
+                                <option value="income">Доход</option>
+                                <option value="expense">Расход</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="amount">Сумма (₽):</label>
+                            <input type="number" id="amount" name="amount" step="0.01" min="0" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="branch_id">Филиал:</label>
+                            <select id="branch_id" name="branch_id" required>
+                                <option value="1">Филиал 1</option>
+                                <option value="2">Филиал 2</option>
+                                <option value="3">Филиал 3</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="description">Описание:</label>
+                            <input type="text" id="description" name="description" required>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn-primary">Создать операцию</button>
+                </form>
+            </div>
+
+            <!-- Управление и фильтры -->
+            <div class="operations-controls">
+                <div class="form-group" style="margin: 0;">
+                    <label for="branchFilter">Фильтр по филиалу:</label>
+                    <select id="branchFilter">
+                        <option value="">Все филиалы</option>
+                        <option value="1">Филиал 1</option>
+                        <option value="2">Филиал 2</option>
+                        <option value="3">Филиал 3</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <label for="searchOps">Поиск (описание):</label>
+                    <input type="text" id="searchOps" placeholder="Введите текст" />
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <label for="sortOps">Сортировка:</label>
+                    <select id="sortOps">
+                        <option value="date_desc">Дата ↓</option>
+                        <option value="date_asc">Дата ↑</option>
+                        <option value="amount_desc">Сумма ↓</option>
+                        <option value="amount_asc">Сумма ↑</option>
+                        <option value="type_asc">Тип A→Я</option>
+                        <option value="type_desc">Тип Я→A</option>
+                    </select>
+                </div>
+                
+                <button id="refreshBtn" class="btn-secondary">🔄 Обновить</button>
+            </div>
+
+            <!-- Список операций -->
+            <div class="dashboard-card">
+                <h2>📋 История операций</h2>
+                <div class="operations-section">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Дата</th>
+                                <th>Тип</th>
+                                <th>Сумма</th>
+                                <th>Описание</th>
+                                <th>Филиал</th>
+                            </tr>
+                        </thead>
+                        <tbody id="operationsTable">
+                            <tr>
+                                <td colspan="5" style="text-align: center;">Загрузка данных...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div id="operationsPagination" style="display:flex; justify-content: center; align-items:center; gap: 10px; margin-top: 10px;">
+                        <button id="prevPageBtn" class="btn-secondary">← Предыдущая</button>
+                        <span>Страница <span id="currentPage">1</span> из <span id="totalPages">1</span></span>
+                        <button id="nextPageBtn" class="btn-secondary">Следующая →</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Панель управления пользователями (для админа) -->
+            <div class="dashboard-card" id="adminPanel" style="display: none; margin-top: 20px;">
+                <h2>👑 Управление пользователями</h2>
+                <div class="operations-section">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div>
+                            <h3 style="margin-top: 0;">Все пользователи</h3>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Email</th>
+                                        <th>Роль</th>
+                                        <th>Филиал</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="usersTable">
+                                    <tr>
+                                        <td colspan="5" style="text-align: center;">Загрузка...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div>
+                            <h3 style="margin-top: 0;">Создать/изменить пользователя</h3>
+                            <form id="userForm">
+                                <input type="hidden" id="userId" />
+                                <div class="form-group">
+                                    <label for="userEmail">Email:</label>
+                                    <input type="email" id="userEmail" required />
+                                </div>
+                                <div class="form-group">
+                                    <label for="userPassword">Пароль:</label>
+                                    <input type="text" id="userPassword" placeholder="Оставьте пустым, если без изменений" />
+                                </div>
+                                <div class="form-group">
+                                    <label for="userRole">Роль:</label>
+                                    <select id="userRole" required>
+                                        <option value="system_admin">system_admin</option>
+                                        <option value="manager">manager</option>
+                                        <option value="accountant">accountant</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="userBranch">Филиал (0 = все):</label>
+                                    <input type="number" id="userBranch" min="0" value="0" required />
+                                </div>
+                                <div style="display:flex; gap: 10px;">
+                                    <button type="submit" class="btn-primary" id="saveUserBtn">Сохранить</button>
+                                    <button type="button" class="btn-secondary" id="resetUserFormBtn">Сброс</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+    </div>
+
+    <!-- Подключаем JavaScript -->
+    <script src="auth.js"></script>
+    <!-- <script src="finance.js"></script> -->
+    <script src="app.js"></script>
+
+    <!-- Простой раздел отчетов -->
+    <div class="dashboard-card" style="margin-top: 20px;">
+        <h2>📄 Отчеты (легкий сервис)</h2>
+        <div class="operations-section">
+            <div style="display:flex; gap: 10px; align-items: end; flex-wrap: wrap;">
+                <div class="form-group" style="margin:0;">
+                    <label for="reportBranch">Филиал (необязательно)</label>
+                    <select id="reportBranch">
+                        <option value="">Все</option>
+                        <option value="1">Филиал 1</option>
+                        <option value="2">Филиал 2</option>
+                        <option value="3">Филиал 3</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin:0;">
+                    <label for="reportLimit">Кол-во последних операций</label>
+                    <select id="reportLimit">
+                        <option value="5">5</option>
+                        <option value="10" selected>10</option>
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                    </select>
+                </div>
+                <button id="btnSummary" class="btn-primary">Показать сводку</button>
+                <button id="btnExportCsv" class="btn-secondary">Экспорт CSV</button>
+                <button id="btnExportPdf" class="btn-secondary">Экспорт PDF</button>
+            </div>
+            <pre id="summaryOutput" style="background:#0b1020; color:#cde3ff; padding:10px; border-radius:8px; margin-top: 10px; white-space: pre-wrap;"></pre>
+        </div>
+    </div>
+
+    <footer>
+        <p>Облачная система управления финансами | Микросервисная архитектура</p>
+    </footer>
+</body>
+</html>
