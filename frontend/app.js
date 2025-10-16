@@ -208,15 +208,38 @@ class FinanceApp {
         const role = this.currentUser.role;
         console.log('🎭 Настройка UI для роли:', role);
 
-        // Скрываем форму создания операций для руководителей
-        const operationForm = document.getElementById('operationForm');
-        if (operationForm) {
-            operationForm.style.display = role === 'manager' ? 'none' : 'block';
+        // Скрываем карточку создания операций для руководителей
+        const newOperationCard = document.getElementById('newOperationCard');
+        if (newOperationCard) {
+            if (role === 'manager') {
+                // Удаляем блок полностью для руководителя
+                newOperationCard.parentNode && newOperationCard.parentNode.removeChild(newOperationCard);
+            } else {
+                newOperationCard.style.display = 'block';
+            }
         }
 
         // Настраиваем филиалы для бухгалтеров
         if (role === 'accountant') {
             this.setupAccountantUI();
+            // Ограничить отчеты бухгалтеру только своим филиалом
+            const reportBranch = document.getElementById('reportBranch');
+            if (reportBranch) {
+                reportBranch.value = String(this.currentUser.branch_id);
+                reportBranch.disabled = true;
+                // Очистим список и оставим только свой филиал
+                reportBranch.innerHTML = '';
+                const opt = document.createElement('option');
+                opt.value = String(this.currentUser.branch_id);
+                opt.textContent = `Филиал ${this.currentUser.branch_id}`;
+                reportBranch.appendChild(opt);
+                // Визуально: оставляем читаемым на тёмной теме
+                reportBranch.style.opacity = '1';
+                reportBranch.style.color = '#e8f0ff';
+                reportBranch.style.backgroundColor = '#2b3348';
+                reportBranch.style.border = '1px solid #4b5a78';
+                reportBranch.style.cursor = 'not-allowed';
+            }
         }
 
         // Показываем/скрываем фильтр по филиалам
@@ -471,7 +494,11 @@ class FinanceApp {
 
     async handleSummary() {
         const token = localStorage.getItem('token');
-        const branch = document.getElementById('reportBranch')?.value || '';
+        let branch = document.getElementById('reportBranch')?.value || '';
+        // Принудительно закрепляем филиал для бухгалтера
+        if (this.currentUser?.role === 'accountant') {
+            branch = String(this.currentUser.branch_id || '');
+        }
         const limit = document.getElementById('reportLimit')?.value || '';
         const q = new URLSearchParams();
         if (branch) q.set('branch_id', branch);
@@ -493,7 +520,10 @@ class FinanceApp {
 
     async handleExportCsv() {
         const token = localStorage.getItem('token');
-        const branch = document.getElementById('reportBranch')?.value || '';
+        let branch = document.getElementById('reportBranch')?.value || '';
+        if (this.currentUser?.role === 'accountant') {
+            branch = String(this.currentUser.branch_id || '');
+        }
         const limit = document.getElementById('reportLimit')?.value || '';
         const q = new URLSearchParams();
         if (branch) q.set('branch_id', branch);
@@ -521,7 +551,10 @@ class FinanceApp {
 
     async handleExportPdf() {
         const token = localStorage.getItem('token');
-        const branch = document.getElementById('reportBranch')?.value || '';
+        let branch = document.getElementById('reportBranch')?.value || '';
+        if (this.currentUser?.role === 'accountant') {
+            branch = String(this.currentUser.branch_id || '');
+        }
         const limit = document.getElementById('reportLimit')?.value || '';
         const q = new URLSearchParams();
         if (branch) q.set('branch_id', branch);

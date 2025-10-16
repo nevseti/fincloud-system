@@ -207,16 +207,18 @@ async def export_pdf(request: Request, branch_id: Optional[int] = None, limit: O
     c.drawString(25 * mm, y, "Филиалы:")
     y -= 8 * mm
     c.setFont(text_font, 10)
+    # Column headers (left aligned)
     c.drawString(25 * mm, y, "Филиал")
     c.drawString(60 * mm, y, "Доход")
     c.drawString(95 * mm, y, "Расход")
     c.drawString(130 * mm, y, "Баланс")
     y -= 6 * mm
     for b in summary['branches']:
+        # Data rows aligned to same x as headers (left aligned)
         c.drawString(25 * mm, y, str(b['branch_id']))
-        c.drawRightString(88 * mm, y, f"{b['income']}")
-        c.drawRightString(123 * mm, y, f"{b['expense']}")
-        c.drawRightString(158 * mm, y, f"{b['balance']}")
+        c.drawString(60 * mm, y, f"{b['income']}")
+        c.drawString(95 * mm, y, f"{b['expense']}")
+        c.drawString(130 * mm, y, f"{b['balance']}")
         y -= 6 * mm
         if y < 25 * mm:
             c.showPage()
@@ -239,25 +241,33 @@ async def export_pdf(request: Request, branch_id: Optional[int] = None, limit: O
     c.setFont(text_font, 9)
     # headers
     c.drawString(25 * mm, y, "Дата")
-    c.drawString(55 * mm, y, "Тип")
-    c.drawString(75 * mm, y, "Сумма")
-    c.drawString(100 * mm, y, "Описание")
-    c.drawString(165 * mm, y, "Филиал")
+    c.drawString(75 * mm, y, "Тип")
+    c.drawString(95 * mm, y, "Сумма")
+    c.drawString(120 * mm, y, "Описание")
+    c.drawString(180 * mm, y, "Филиал")
     y -= 6 * mm
     for op in ops_sorted:
         date_str = str(op.get("created_at", ""))[:19]
         typ = str(op.get("type", ""))
+        # Localize operation type for PDF output
+        if typ.lower() == "income":
+            typ_display = "доход"
+        elif typ.lower() == "expense":
+            typ_display = "расход"
+        else:
+            typ_display = typ
         amount = str(op.get("amount", ""))
         desc = str(op.get("description", ""))
         if len(desc) > 60:
             desc = desc[:57] + "..."
         branch = str(op.get("branch_id", ""))
 
+        # Data left-aligned under same x as headers
         c.drawString(25 * mm, y, date_str)
-        c.drawString(55 * mm, y, typ)
-        c.drawRightString(95 * mm, y, amount)
-        c.drawString(100 * mm, y, desc)
-        c.drawRightString(185 * mm, y, branch)
+        c.drawString(75 * mm, y, typ_display)
+        c.drawString(95 * mm, y, amount)
+        c.drawString(120 * mm, y, desc)
+        c.drawString(180 * mm, y, branch)
         y -= 6 * mm
         if y < 25 * mm:
             c.showPage()
