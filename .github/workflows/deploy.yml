@@ -1,0 +1,132 @@
+name: Deploy to Environments
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+        - staging
+        - production
+      version:
+        description: 'Version to deploy'
+        required: false
+        default: 'latest'
+
+jobs:
+  deploy-staging:
+    if: github.event.inputs.environment == 'staging' || github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    environment: staging
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'latest'
+
+    - name: Configure kubectl for staging
+      run: |
+        echo "${{ secrets.KUBE_CONFIG_STAGING }}" | base64 -d > kubeconfig
+        export KUBECONFIG=kubeconfig
+
+    - name: Deploy to staging
+      run: |
+        export KUBECONFIG=kubeconfig
+        kubectl apply -f k8s/namespace.yaml
+        kubectl apply -f k8s/postgres.yaml
+        kubectl wait --for=condition=ready pod -l app=postgres -n fincloud --timeout=300s
+        kubectl apply -f k8s/auth.yaml
+        kubectl apply -f k8s/finance.yaml
+        kubectl apply -f k8s/report.yaml
+        kubectl apply -f k8s/frontend.yaml
+        kubectl apply -f k8s/ingress.yaml
+
+    - name: Run smoke tests
+      run: |
+        export KUBECONFIG=kubeconfig
+        kubectl get pods -n fincloud
+        kubectl get services -n fincloud
+        
+        # Проверяем health endpoints
+        kubectl port-forward service/auth-service 8000:8000 -n fincloud &
+        sleep 5
+        curl -f http://localhost:8000/health || exit 1
+
+  deploy-production:
+    if: github.event.inputs.environment == 'production' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    needs: []
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'latest'
+
+    - name: Configure kubectl for production
+      run: |
+        echo "${{ secrets.KUBE_CONFIG_PRODUCTION }}" | base64 -d > kubeconfig
+        export KUBECONFIG=kubeconfig
+
+    - name: Deploy to production
+      run: |
+        export KUBECONFIG=kubeconfig
+        
+        # Создаем namespace если не существует
+        kubectl apply -f k8s/namespace.yaml
+        
+        # Деплой с rolling update
+        kubectl apply -f k8s/postgres.yaml
+        kubectl wait --for=condition=ready pod -l app=postgres -n fincloud --timeout=300s
+        
+        # Обновляем сервисы по одному для минимизации простоя
+        kubectl apply -f k8s/auth.yaml
+        kubectl rollout status deployment/auth-service -n fincloud --timeout=300s
+        
+        kubectl apply -f k8s/finance.yaml
+        kubectl rollout status deployment/finance-service -n fincloud --timeout=300s
+        
+        kubectl apply -f k8s/report.yaml
+        kubectl rollout status deployment/report-service -n fincloud --timeout=300s
+        
+        kubectl apply -f k8s/frontend.yaml
+        kubectl rollout status deployment/fincloud-frontend -n fincloud --timeout=300s
+        
+        kubectl apply -f k8s/ingress.yaml
+
+    - name: Verify production deployment
+      run: |
+        export KUBECONFIG=kubeconfig
+        kubectl get pods -n fincloud
+        kubectl get services -n fincloud
+        
+        # Проверяем все health endpoints
+        kubectl port-forward service/auth-service 8000:8000 -n fincloud &
+        kubectl port-forward service/finance-service 8001:8001 -n fincloud &
+        kubectl port-forward service/report-service 8002:8002 -n fincloud &
+        kubectl port-forward service/fincloud-frontend 8080:80 -n fincloud &
+        
+        sleep 10
+        
+        curl -f http://localhost:8000/health || exit 1
+        curl -f http://localhost:8001/health || exit 1
+        curl -f http://localhost:8002/health || exit 1
+        curl -f http://localhost:8080 || exit 1
+
+    - name: Notify deployment success
+      run: |
+        echo "🚀 FinCloud успешно развернута в production!"
+        echo "📊 Статус сервисов:"
+        export KUBECONFIG=kubeconfig
+        kubectl get pods -n fincloud

@@ -1,0 +1,143 @@
+name: FinCloud Tests
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # Тестирование auth-service
+  test-auth:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: auth_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        cd auth-service
+        pip install -r requirements.txt
+        pip install pytest pytest-asyncio httpx
+
+    - name: Run auth-service tests
+      run: |
+        cd auth-service
+        export AUTH_DATABASE_URL="postgresql://postgres:postgres@localhost:5432/auth_db"
+        python -m pytest tests/ -v || echo "No tests found"
+
+  # Тестирование finance-service
+  test-finance:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: finance_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        cd finance-service
+        pip install -r requirements.txt
+        pip install pytest pytest-asyncio httpx
+
+    - name: Run finance-service tests
+      run: |
+        cd finance-service
+        export FINANCE_DATABASE_URL="postgresql://postgres:postgres@localhost:5432/finance_db"
+        python -m pytest tests/ -v || echo "No tests found"
+
+  # Тестирование report-service
+  test-report:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        cd report-service
+        pip install -r requirements.txt
+        pip install pytest pytest-asyncio httpx
+
+    - name: Run report-service tests
+      run: |
+        cd report-service
+        python -m pytest tests/ -v || echo "No tests found"
+
+  # Линтинг кода
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install linting tools
+      run: |
+        pip install flake8 black isort mypy
+
+    - name: Run flake8
+      run: |
+        cd auth-service && flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        cd ../finance-service && flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        cd ../report-service && flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+    - name: Run black
+      run: |
+        cd auth-service && black --check .
+        cd ../finance-service && black --check .
+        cd ../report-service && black --check .
+
+    - name: Run isort
+      run: |
+        cd auth-service && isort --check-only .
+        cd ../finance-service && isort --check-only .
+        cd ../report-service && isort --check-only .

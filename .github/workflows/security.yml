@@ -1,0 +1,116 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 2 * * 1'  # Каждый понедельник в 2:00
+
+jobs:
+  # Сканирование зависимостей
+  dependency-scan:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install safety
+      run: pip install safety
+
+    - name: Scan auth-service dependencies
+      run: |
+        cd auth-service
+        pip install -r requirements.txt
+        safety check --json --output safety-report-auth.json || true
+
+    - name: Scan finance-service dependencies
+      run: |
+        cd finance-service
+        pip install -r requirements.txt
+        safety check --json --output safety-report-finance.json || true
+
+    - name: Scan report-service dependencies
+      run: |
+        cd report-service
+        pip install -r requirements.txt
+        safety check --json --output safety-report-report.json || true
+
+    - name: Upload safety reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: safety-reports
+        path: |
+          auth-service/safety-report-auth.json
+          finance-service/safety-report-finance.json
+          report-service/safety-report-report.json
+
+  # Сканирование Docker образов
+  docker-scan:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Build Docker images
+      run: |
+        docker build -t fincloud-auth:test ./auth-service
+        docker build -t fincloud-finance:test ./finance-service
+        docker build -t fincloud-report:test ./report-service
+        docker build -t fincloud-frontend:test ./frontend
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'fincloud-auth:test'
+        format: 'sarif'
+        output: 'trivy-results-auth.sarif'
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'fincloud-finance:test'
+        format: 'sarif'
+        output: 'trivy-results-finance.sarif'
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'fincloud-report:test'
+        format: 'sarif'
+        output: 'trivy-results-report.sarif'
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'fincloud-frontend:test'
+        format: 'sarif'
+        output: 'trivy-results-frontend.sarif'
+
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: 'trivy-results-auth.sarif'
+
+  # Сканирование секретов
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Run TruffleHog OSS
+      uses: trufflesecurity/trufflehog@main
+      with:
+        path: ./
+        base: main
+        head: HEAD
+        extra_args: --debug --only-verified
