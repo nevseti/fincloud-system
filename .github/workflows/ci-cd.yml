@@ -26,7 +26,7 @@ jobs:
     # 3. Установить зависимости
     - name: Install packages
       run: |
-        pip install fastapi uvicorn sqlalchemy psycopg2-binary python-multipart python-jose[cryptography] passlib[bcrypt] python-dotenv
+        pip install fastapi uvicorn sqlalchemy psycopg2-binary python-multipart python-jose[cryptography] passlib[bcrypt] python-dotenv email-validator
 
     # 4. Проверить что код компилируется
     - name: Check Python code
