@@ -41,6 +41,11 @@ jobs:
     - name: Check services start
       run: |
         echo "🔍 Checking if services can start..."
+        # Устанавливаем тестовые переменные окружения
+        export AUTH_DATABASE_URL="sqlite:///./test.db"
+        export FINANCE_DATABASE_URL="sqlite:///./test.db"
+        export FINANCE_SERVICE_URL="http://localhost:8001"
+        
         cd auth-service && python -c "from app.main import app; print('✅ Auth service OK')"
         cd ../finance-service && python -c "from app.main import app; print('✅ Finance service OK')"
         cd ../report-service && python -c "from app.main import app; print('✅ Report service OK')"
