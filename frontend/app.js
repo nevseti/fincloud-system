@@ -264,6 +264,8 @@ class FinanceApp {
             });
             if (!resp.ok) throw new Error(await resp.text());
             const users = await resp.json();
+            // Сортируем пользователей по ID (по возрастанию)
+            users.sort((a, b) => a.id - b.id);
             this.renderUsers(users);
         } catch (e) {
             console.error('Не удалось загрузить пользователей:', e);
@@ -282,8 +284,10 @@ class FinanceApp {
                 <td>${u.role}</td>
                 <td>${u.branch_id}</td>
                 <td>
-                    <button data-action="edit" data-id="${u.id}" class="btn-secondary">Изм.</button>
-                    <button data-action="delete" data-id="${u.id}" class="btn-secondary" style="background:#dc3545;">Удалить</button>
+                    <div class="user-actions">
+                        <button data-action="edit" data-id="${u.id}" class="btn-edit" title="Изменить">✏️</button>
+                        <button data-action="delete" data-id="${u.id}" class="btn-delete" title="Удалить">🗑️</button>
+                    </div>
                 </td>
             `;
             tbody.appendChild(tr);
@@ -445,6 +449,20 @@ class FinanceApp {
         const branch_id = parseInt(document.getElementById('userBranch').value);
         const token = localStorage.getItem('token');
 
+        // Валидация данных
+        if (email && email.length > 100) {
+            alert('❌ Email не может быть длиннее 100 символов');
+            return;
+        }
+        if (password && password.length > 50) {
+            alert('❌ Пароль не может быть длиннее 50 символов');
+            return;
+        }
+        if (branch_id > 10) {
+            alert('❌ Филиал не может быть больше 10');
+            return;
+        }
+
         try {
             let resp;
             if (id) {
@@ -584,9 +602,17 @@ class FinanceApp {
         e.preventDefault();
         
         const formData = new FormData(e.target);
+        const amount = parseFloat(formData.get('amount'));
+        
+        // Валидация суммы (максимум 20 цифр)
+        if (amount > 99999999999999999999) {
+            alert('❌ Сумма не может превышать 20 цифр');
+            return;
+        }
+        
         const operationData = {
             type: formData.get('type'),
-            amount: parseFloat(formData.get('amount')),
+            amount: amount,
             description: formData.get('description'),
             branch_id: parseInt(formData.get('branch_id'))
         };

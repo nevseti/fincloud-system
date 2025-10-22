@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fincloud-frontend
+  namespace: fincloud
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fincloud-frontend
+  template:
+    metadata:
+      labels:
+        app: fincloud-frontend
+    spec:
+      containers:
+        - name: nginx
+          image: fincloud-frontend:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fincloud-frontend
+  namespace: fincloud
+spec:
+  selector:
+    app: fincloud-frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+  type: ClusterIP
+

@@ -2,4 +2,3 @@
 -- Create additional database for finance-service
 CREATE DATABASE finance_db;
 
-

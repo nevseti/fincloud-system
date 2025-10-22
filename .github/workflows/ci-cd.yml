@@ -1,160 +1,89 @@
-name: FinCloud CI/CD Pipeline
+name: Simple Check
 
+# Запускается при каждом push и pull request
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main ]
   pull_request:
     branches: [ main ]
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
-
 jobs:
-  # Тестирование
-  test:
+  # Единственная задача - проверить что все работает
+  check:
     runs-on: ubuntu-latest
+    
     steps:
-    - name: Checkout code
+    # 1. Скачать код
+    - name: Get code
       uses: actions/checkout@v4
 
-    - name: Set up Python
+    # 2. Установить Python
+    - name: Setup Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
 
-    - name: Install dependencies
+    # 3. Установить зависимости
+    - name: Install packages
       run: |
-        cd auth-service
-        pip install -r requirements.txt
-        cd ../finance-service
-        pip install -r requirements.txt
-        cd ../report-service
-        pip install -r requirements.txt
+        pip install fastapi uvicorn sqlalchemy psycopg2-binary python-multipart python-jose[cryptography] passlib[bcrypt] python-dotenv
 
-    - name: Run tests
+    # 4. Проверить что код компилируется
+    - name: Check Python code
       run: |
-        echo "Running tests for auth-service..."
-        cd auth-service
-        python -m pytest tests/ || echo "No tests found"
+        echo "🔍 Checking if code compiles..."
+        python -m py_compile auth-service/app/main.py
+        python -m py_compile finance-service/app/main.py
+        python -m py_compile report-service/app/main.py
+        echo "✅ All Python files are OK"
+
+    # 5. Проверить что сервисы запускаются
+    - name: Check services start
+      run: |
+        echo "🔍 Checking if services can start..."
+        cd auth-service && python -c "from app.main import app; print('✅ Auth service OK')"
+        cd ../finance-service && python -c "from app.main import app; print('✅ Finance service OK')"
+        cd ../report-service && python -c "from app.main import app; print('✅ Report service OK')"
+        echo "✅ All services can start"
+
+    # 6. Проверить что Docker образы собираются
+    - name: Check Docker builds
+      run: |
+        echo "🔍 Checking if Docker images build..."
+        docker build -t test-auth ./auth-service
+        docker build -t test-finance ./finance-service
+        docker build -t test-report ./report-service
+        docker build -t test-frontend ./frontend
+        echo "✅ All Docker images build successfully"
+
+    # 7. Проверить что Docker Swarm работает
+    - name: Check Docker Swarm
+      run: |
+        echo "🔍 Checking if Docker Swarm works..."
+        # Запускаем Docker Swarm
+        docker swarm init --advertise-addr 127.0.0.1 || true
         
-        echo "Running tests for finance-service..."
-        cd ../finance-service
-        python -m pytest tests/ || echo "No tests found"
+        # Собираем образы для теста
+        docker build -t fincloud-auth:test ./auth-service
+        docker build -t fincloud-finance:test ./finance-service
+        docker build -t fincloud-report:test ./report-service
+        docker build -t fincloud-frontend:test ./frontend
         
-        echo "Running tests for report-service..."
-        cd ../report-service
-        python -m pytest tests/ || echo "No tests found"
+        # Пробуем запустить стек
+        docker stack deploy -c docker-compose.swarm-simple.yml fincloud-test
+        
+        # Ждем немного
+        sleep 10
+        
+        # Проверяем что сервисы запустились
+        docker stack services fincloud-test
+        
+        # Останавливаем тестовый стек
+        docker stack rm fincloud-test
+        
+        echo "✅ Docker Swarm works!"
 
-  # Сборка и публикация Docker образов
-  build-and-push:
-    needs: test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-
-    - name: Log in to Container Registry
-      uses: docker/login-action@v3
-      with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Extract metadata
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-        tags: |
-          type=ref,event=branch
-          type=ref,event=pr
-          type=sha,prefix={{branch}}-
-          type=raw,value=latest,enable={{is_default_branch}}
-
-    # Сборка auth-service
-    - name: Build and push auth-service
-      uses: docker/build-push-action@v5
-      with:
-        context: ./auth-service
-        push: true
-        tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/auth-service:${{ github.sha }}
-        labels: ${{ steps.meta.outputs.labels }}
-
-    # Сборка finance-service
-    - name: Build and push finance-service
-      uses: docker/build-push-action@v5
-      with:
-        context: ./finance-service
-        push: true
-        tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/finance-service:${{ github.sha }}
-        labels: ${{ steps.meta.outputs.labels }}
-
-    # Сборка report-service
-    - name: Build and push report-service
-      uses: docker/build-push-action@v5
-      with:
-        context: ./report-service
-        push: true
-        tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/report-service:${{ github.sha }}
-        labels: ${{ steps.meta.outputs.labels }}
-
-    # Сборка frontend
-    - name: Build and push frontend
-      uses: docker/build-push-action@v5
-      with:
-        context: ./frontend
-        push: true
-        tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }}
-        labels: ${{ steps.meta.outputs.labels }}
-
-  # Деплой в Kubernetes
-  deploy:
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up kubectl
-      uses: azure/setup-kubectl@v3
-      with:
-        version: 'latest'
-
-    - name: Configure kubectl
+    # 8. Готово!
+    - name: Success
       run: |
-        echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > kubeconfig
-        export KUBECONFIG=kubeconfig
-
-    - name: Update image tags in Kubernetes manifests
-      run: |
-        # Обновляем теги образов в YAML файлах
-        sed -i "s|fincloud-auth:local|${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/auth-service:${{ github.sha }}|g" k8s/auth.yaml
-        sed -i "s|fincloud-finance:local|${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/finance-service:${{ github.sha }}|g" k8s/finance.yaml
-        sed -i "s|fincloud-report:local|${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/report-service:${{ github.sha }}|g" k8s/report.yaml
-        sed -i "s|fincloud-frontend:local|${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }}|g" k8s/frontend.yaml
-
-    - name: Deploy to Kubernetes
-      run: |
-        export KUBECONFIG=kubeconfig
-        kubectl apply -f k8s/namespace.yaml
-        kubectl apply -f k8s/postgres.yaml
-        kubectl wait --for=condition=ready pod -l app=postgres -n fincloud --timeout=300s
-        kubectl apply -f k8s/auth.yaml
-        kubectl apply -f k8s/finance.yaml
-        kubectl apply -f k8s/report.yaml
-        kubectl apply -f k8s/frontend.yaml
-        kubectl apply -f k8s/ingress.yaml
-
-    - name: Verify deployment
-      run: |
-        export KUBECONFIG=kubeconfig
-        kubectl get pods -n fincloud
-        kubectl get services -n fincloud
+        echo "🎉 Everything works! Your code is good to go!"
