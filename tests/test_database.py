@@ -4,17 +4,18 @@
 """
 import pytest
 import os
+import sys
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
 
-# Импортируем модели из обоих сервисов
-import sys
-sys.path.append('auth-service')
-sys.path.append('finance-service')
+# Добавляем пути к сервисам
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'auth-service'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'finance-service'))
 
-from auth_service.app.models import User as AuthUser, Base as AuthBase
-from finance_service.app.models import Operation as FinanceOperation, Base as FinanceBase
+# Импортируем модели из обоих сервисов
+from app.models import User as AuthUser, Base as AuthBase
+from app.models import Operation as FinanceOperation, Base as FinanceBase
 
 class TestDatabaseOperations:
     """Тесты для операций с базой данных"""

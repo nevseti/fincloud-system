@@ -4,11 +4,14 @@
 """
 import pytest
 import httpx
+import os
+import tempfile
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-import os
-import tempfile
+
+# Устанавливаем тестовую базу данных перед импортом приложения
+os.environ["AUTH_DATABASE_URL"] = "sqlite:///./test_auth.db"
 
 # Импортируем наше приложение
 from app.main import app

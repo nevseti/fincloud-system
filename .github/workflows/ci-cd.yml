@@ -55,6 +55,9 @@ jobs:
     - name: Run Functional Tests
       run: |
         echo "🧪 Running functional tests..."
+        # Устанавливаем тестовые переменные окружения
+        export AUTH_DATABASE_URL="sqlite:///./test_auth.db"
+        export FINANCE_DATABASE_URL="sqlite:///./test_finance.db"
         cd auth-service && python -m pytest tests/test_auth_functional.py -v
         cd ../finance-service && python -m pytest tests/test_finance_functional.py -v
         echo "✅ Functional tests passed!"
@@ -63,6 +66,9 @@ jobs:
     - name: Run Database Tests
       run: |
         echo "🗄️ Running database tests..."
+        # Устанавливаем тестовые переменные окружения
+        export AUTH_DATABASE_URL="sqlite:///./test_auth.db"
+        export FINANCE_DATABASE_URL="sqlite:///./test_finance.db"
         python -m pytest tests/test_database.py -v
         echo "✅ Database tests passed!"
 

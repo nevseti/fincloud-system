@@ -4,10 +4,13 @@
 """
 import pytest
 import httpx
+import os
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-import os
+
+# Устанавливаем тестовую базу данных перед импортом приложения
+os.environ["FINANCE_DATABASE_URL"] = "sqlite:///./test_finance.db"
 
 # Импортируем наше приложение
 from app.main import app
