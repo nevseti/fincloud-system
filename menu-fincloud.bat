@@ -1,23 +1,24 @@
 @echo off
+chcp 65001 >nul
 echo ========================================
 echo    FinCloud System - Quick Actions
 echo ========================================
 echo.
 
-echo Выберите действие:
+echo Choose an action:
 echo.
-echo [1] 🚀 Запустить FinCloud
-echo [2] ⏹️  Остановить FinCloud
-echo [3] 📊 Проверить статус
-echo [4] 📋 Посмотреть логи
-echo [5] 🌐 Открыть приложение
-echo [6] 📚 Открыть API документацию
-echo [7] 🔄 Перезапустить сервисы
-echo [8] 🧹 Очистить систему
-echo [0] Выход
+echo [1] Start FinCloud
+echo [2] Stop FinCloud
+echo [3] Check Status
+echo [4] View Logs
+echo [5] Open Application
+echo [6] Open API Documentation
+echo [7] Restart Services
+echo [8] Clean System
+echo [0] Exit
 echo.
 
-set /p choice="Введите номер (0-8): "
+set /p choice="Enter number (0-8): "
 
 if "%choice%"=="1" (
     call start-fincloud.bat
@@ -28,34 +29,34 @@ if "%choice%"=="1" (
 ) else if "%choice%"=="4" (
     call logs-fincloud.bat
 ) else if "%choice%"=="5" (
-    echo 🌐 Открываю приложение...
+    echo Opening application...
     start http://localhost:8080
-    echo ✅ Приложение открыто в браузере
+    echo Application opened in browser
     pause
 ) else if "%choice%"=="6" (
-    echo 📚 Открываю API документацию...
+    echo Opening API documentation...
     start http://localhost:8000/docs
-    echo ✅ API документация открыта в браузере
+    echo API documentation opened in browser
     pause
 ) else if "%choice%"=="7" (
-    echo 🔄 Перезапускаю сервисы...
+    echo Restarting services...
     call stop-fincloud.bat
     timeout /t 3 /nobreak >nul
     call start-fincloud.bat
 ) else if "%choice%"=="8" (
-    echo 🧹 Очищаю систему...
+    echo Cleaning system...
     docker system prune -a -f
     docker volume prune -f
-    echo ✅ Система очищена
+    echo System cleaned
     pause
 ) else if "%choice%"=="0" (
     exit /b 0
 ) else (
-    echo ❌ Неверный выбор!
+    echo Invalid choice!
     pause
 )
 
 echo.
-echo 💡 Для быстрого доступа к меню используйте: menu-fincloud.bat
+echo For quick access to menu use: menu-fincloud.bat
 echo.
 pause

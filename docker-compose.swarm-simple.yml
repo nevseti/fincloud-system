@@ -26,7 +26,7 @@ services:
   auth-service:
     image: fincloud-auth:local
     environment:
-      AUTH_DATABASE_URL: postgresql://postgres:postgres@fincloud_postgres:5432/auth_db
+      AUTH_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/auth_db
     networks:
       - fincloud-network
     ports:
@@ -44,7 +44,7 @@ services:
   finance-service:
     image: fincloud-finance:local
     environment:
-      FINANCE_DATABASE_URL: postgresql://postgres:postgres@fincloud_postgres:5432/finance_db
+      FINANCE_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/finance_db
     networks:
       - fincloud-network
     ports:
@@ -62,7 +62,7 @@ services:
   report-service:
     image: fincloud-report:local
     environment:
-      FINANCE_SERVICE_URL: http://fincloud_finance-service:8001
+      FINANCE_SERVICE_URL: http://finance-service:8001
     networks:
       - fincloud-network
     ports:
