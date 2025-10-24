@@ -26,7 +26,7 @@ if ($LASTEXITCODE -ne 0) {
 
 # Deploy stack
 Write-Host "Deploying stack..." -ForegroundColor Yellow
-docker stack deploy -c docker-compose.swarm.yml fincloud
+docker stack deploy -c docker-compose.swarm-simple.yml fincloud
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Failed to deploy stack" -ForegroundColor Red
@@ -42,9 +42,9 @@ Write-Host "Stack Status:" -ForegroundColor Green
 docker stack services fincloud
 
 Write-Host "Access URLs:" -ForegroundColor Green
-Write-Host "Frontend: http://localhost" -ForegroundColor Cyan
-Write-Host "Auth API: http://localhost/auth" -ForegroundColor Cyan
-Write-Host "Finance API: http://localhost/finance" -ForegroundColor Cyan
-Write-Host "Reports API: http://localhost/reports" -ForegroundColor Cyan
+Write-Host "Frontend: http://localhost:8080" -ForegroundColor Cyan
+Write-Host "Auth API: http://localhost:8000" -ForegroundColor Cyan
+Write-Host "Finance API: http://localhost:8001" -ForegroundColor Cyan
+Write-Host "Reports API: http://localhost:8002" -ForegroundColor Cyan
 
 Write-Host "FinCloud deployed successfully!" -ForegroundColor Green

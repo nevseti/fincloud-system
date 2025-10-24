@@ -26,7 +26,7 @@ jobs:
     # 3. Установить зависимости
     - name: Install packages
       run: |
-        pip install fastapi uvicorn sqlalchemy psycopg2-binary python-multipart python-jose[cryptography] passlib[bcrypt] python-dotenv email-validator httpx reportlab
+        pip install fastapi uvicorn sqlalchemy psycopg2-binary python-multipart python-jose[cryptography] passlib[bcrypt] python-dotenv email-validator httpx reportlab pytest pytest-asyncio
 
     # 4. Проверить что код компилируется
     - name: Check Python code
@@ -51,7 +51,22 @@ jobs:
         cd ../report-service && python -c "from app.main import app; print('✅ Report service OK')"
         echo "✅ All services can start"
 
-    # 6. Проверить что Docker образы собираются
+    # 6. Запустить функциональные тесты
+    - name: Run Functional Tests
+      run: |
+        echo "🧪 Running functional tests..."
+        cd auth-service && python -m pytest tests/test_auth_functional.py -v
+        cd ../finance-service && python -m pytest tests/test_finance_functional.py -v
+        echo "✅ Functional tests passed!"
+
+    # 7. Запустить тесты базы данных
+    - name: Run Database Tests
+      run: |
+        echo "🗄️ Running database tests..."
+        python -m pytest tests/test_database.py -v
+        echo "✅ Database tests passed!"
+
+    # 8. Проверить что Docker образы собираются
     - name: Check Docker builds
       run: |
         echo "🔍 Checking if Docker images build..."
@@ -61,7 +76,7 @@ jobs:
         docker build -t test-frontend ./frontend
         echo "✅ All Docker images build successfully"
 
-    # 7. Проверить что Docker Swarm работает
+    # 9. Проверить что Docker Swarm работает
     - name: Check Docker Swarm
       run: |
         echo "🔍 Checking if Docker Swarm works..."
@@ -88,7 +103,7 @@ jobs:
         
         echo "✅ Docker Swarm works!"
 
-    # 8. Готово!
+    # 10. Готово!
     - name: Success
       run: |
         echo "🎉 Everything works! Your code is good to go!"

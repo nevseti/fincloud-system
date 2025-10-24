@@ -5,7 +5,7 @@ from typing import Optional
 
 SECRET_KEY = "your-secret-key-for-development-change-in-production"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 1440  # 24 часа
 
 # Используем bcrypt без автоматического усечения
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
