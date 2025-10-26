@@ -69,7 +69,6 @@ jobs:
     
     - name: Install dependencies
       run: |
-        pip install pytest pytest-asyncio httpx
         pip install -r ${{ matrix.service }}/requirements.txt
     
     - name: Run unit tests
@@ -77,26 +76,37 @@ jobs:
         echo "🧪 Running unit tests for ${{ matrix.service }}..."
         cd ${{ matrix.service }}
         
+        # Test basic Python syntax
+        echo "✅ Testing Python syntax..."
+        python -m py_compile app/main.py
+        python -m py_compile app/models.py
+        python -m py_compile app/schemas.py
+        python -m py_compile app/database.py
+        
         # Test basic imports
-        python -c "from app.main import app; print('✅ App import successful')"
-        python -c "from app.models import *; print('✅ Models import successful')"
-        python -c "from app.schemas import *; print('✅ Schemas import successful')"
+        echo "✅ Testing imports..."
+        python -c "import app.main; print('Main module imported successfully')"
+        python -c "import app.models; print('Models module imported successfully')"
+        python -c "import app.schemas; print('Schemas module imported successfully')"
         
         # Test health endpoint
+        echo "✅ Testing health endpoint..."
         python -c "
         from fastapi.testclient import TestClient
         from app.main import app
         client = TestClient(app)
         response = client.get('/health')
-        print(f'✅ Health endpoint: {response.status_code}')
+        print(f'Health endpoint status: {response.status_code}')
+        assert response.status_code == 200
+        print('Health endpoint working correctly')
         "
     
     - name: Unit test summary
       run: |
         echo "## 🧪 Unit Tests - ${{ matrix.service }}" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **App import**: Successfully imported" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Health endpoint**: Responds correctly" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Dependencies**: All modules load without errors" >> $GITHUB_STEP_SUMMARY
+        echo "✅ **Python syntax**: All files compile successfully" >> $GITHUB_STEP_SUMMARY
+        echo "✅ **Module imports**: All modules import without errors" >> $GITHUB_STEP_SUMMARY
+        echo "✅ **Health endpoint**: Responds with status 200" >> $GITHUB_STEP_SUMMARY
 
   # ===========================================
   # 3. INTEGRATION TESTS
@@ -115,7 +125,6 @@ jobs:
     
     - name: Install dependencies
       run: |
-        pip install pytest pytest-asyncio httpx
         pip install -r auth-service/requirements.txt
         pip install -r finance-service/requirements.txt
         pip install -r report-service/requirements.txt
@@ -124,27 +133,43 @@ jobs:
       run: |
         echo "🔗 Running integration tests..."
         
-        # Test service communication
+        # Test service imports
         echo "✅ Testing service imports..."
-        python -c "from auth_service.app.main import app as auth_app; print('Auth service: OK')"
-        python -c "from finance_service.app.main import app as finance_app; print('Finance service: OK')"
-        python -c "from report_service.app.main import app as report_app; print('Report service: OK')"
+        cd auth-service && python -c "from app.main import app; print('Auth service: OK')" && cd ..
+        cd finance-service && python -c "from app.main import app; print('Finance service: OK')" && cd ..
+        cd report-service && python -c "from app.main import app; print('Report service: OK')" && cd ..
         
-        # Test API endpoints
-        echo "✅ Testing API endpoints..."
-        python -c "
+        # Test service health endpoints
+        echo "✅ Testing service health endpoints..."
+        cd auth-service && python -c "
         from fastapi.testclient import TestClient
-        from auth_service.app.main import app
+        from app.main import app
         client = TestClient(app)
         response = client.get('/health')
         print(f'Auth health: {response.status_code}')
-        "
+        " && cd ..
+        
+        cd finance-service && python -c "
+        from fastapi.testclient import TestClient
+        from app.main import app
+        client = TestClient(app)
+        response = client.get('/health')
+        print(f'Finance health: {response.status_code}')
+        " && cd ..
+        
+        cd report-service && python -c "
+        from fastapi.testclient import TestClient
+        from app.main import app
+        client = TestClient(app)
+        response = client.get('/health')
+        print(f'Report health: {response.status_code}')
+        " && cd ..
     
     - name: Integration test summary
       run: |
         echo "## 🔗 Integration Tests" >> $GITHUB_STEP_SUMMARY
         echo "✅ **Service imports**: All services import successfully" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **API endpoints**: Health endpoints respond correctly" >> $GITHUB_STEP_SUMMARY
+        echo "✅ **Health endpoints**: All services respond to /health" >> $GITHUB_STEP_SUMMARY
         echo "✅ **Service communication**: Services can communicate" >> $GITHUB_STEP_SUMMARY
 
   # ===========================================
@@ -164,7 +189,6 @@ jobs:
     
     - name: Install dependencies
       run: |
-        pip install pytest pytest-asyncio httpx
         pip install -r auth-service/requirements.txt
         pip install -r finance-service/requirements.txt
         pip install -r report-service/requirements.txt
@@ -173,28 +197,61 @@ jobs:
       run: |
         echo "🌐 Running API tests..."
         
-        # Test all service endpoints
-        for service in auth-service finance-service report-service; do
-          echo "✅ Testing $service endpoints..."
-          cd $service
-          python -c "
-          from fastapi.testclient import TestClient
-          from app.main import app
-          client = TestClient(app)
-          
-          # Test health endpoint
-          response = client.get('/health')
-          print(f'Health endpoint: {response.status_code}')
-          
-          # Test other endpoints if they exist
-          try:
-            response = client.get('/')
-            print(f'Root endpoint: {response.status_code}')
-          except:
-            print('Root endpoint: Not available')
-          "
-          cd ..
-        done
+        # Test auth service endpoints
+        echo "✅ Testing auth service endpoints..."
+        cd auth-service
+        python -c "
+        from fastapi.testclient import TestClient
+        from app.main import app
+        client = TestClient(app)
+        
+        # Test health endpoint
+        response = client.get('/health')
+        print(f'Auth health: {response.status_code}')
+        assert response.status_code == 200
+        
+        # Test register endpoint (should return validation error for empty data)
+        response = client.post('/register', json={})
+        print(f'Auth register (empty): {response.status_code}')
+        assert response.status_code == 422
+        
+        print('Auth service endpoints working correctly')
+        "
+        cd ..
+        
+        # Test finance service endpoints
+        echo "✅ Testing finance service endpoints..."
+        cd finance-service
+        python -c "
+        from fastapi.testclient import TestClient
+        from app.main import app
+        client = TestClient(app)
+        
+        # Test health endpoint
+        response = client.get('/health')
+        print(f'Finance health: {response.status_code}')
+        assert response.status_code == 200
+        
+        print('Finance service endpoints working correctly')
+        "
+        cd ..
+        
+        # Test report service endpoints
+        echo "✅ Testing report service endpoints..."
+        cd report-service
+        python -c "
+        from fastapi.testclient import TestClient
+        from app.main import app
+        client = TestClient(app)
+        
+        # Test health endpoint
+        response = client.get('/health')
+        print(f'Report health: {response.status_code}')
+        assert response.status_code == 200
+        
+        print('Report service endpoints working correctly')
+        "
+        cd ..
     
     - name: API test summary
       run: |
@@ -220,43 +277,52 @@ jobs:
     
     - name: Install dependencies
       run: |
-        pip install pytest
         pip install -r auth-service/requirements.txt
     
     - name: Run security tests
       run: |
         echo "🔒 Running security tests..."
         
+        cd auth-service
+        
         # Test JWT functionality
         echo "✅ Testing JWT token creation..."
         python -c "
-        from auth_service.app.auth_utils import create_access_token, verify_token
+        from app.auth_utils import create_access_token, verify_token
         data = {'sub': 'test@example.com'}
         token = create_access_token(data)
         payload = verify_token(token)
         print(f'JWT creation: {payload is not None}')
+        assert payload is not None
+        print('JWT functionality working correctly')
         "
         
         # Test password hashing
         echo "✅ Testing password hashing..."
         python -c "
-        from auth_service.app.auth_utils import get_password_hash, verify_password
+        from app.auth_utils import get_password_hash, verify_password
         password = 'test_password'
         hashed = get_password_hash(password)
         is_valid = verify_password(password, hashed)
         print(f'Password hashing: {is_valid}')
+        assert is_valid
+        print('Password hashing working correctly')
         "
         
         # Test input validation
         echo "✅ Testing input validation..."
         python -c "
-        from auth_service.app.schemas import UserCreate
+        from app.schemas import UserCreate
         try:
             user = UserCreate(email='test@example.com', password='password123', role='user', branch_id=1)
             print('Input validation: OK')
         except Exception as e:
-            print(f'Input validation: {e}')
+            print(f'Input validation error: {e}')
+            raise
+        print('Input validation working correctly')
         "
+        
+        cd ..
     
     - name: Security test summary
       run: |
@@ -282,7 +348,6 @@ jobs:
     
     - name: Install dependencies
       run: |
-        pip install pytest pytest-asyncio httpx
         pip install -r auth-service/requirements.txt
         pip install -r finance-service/requirements.txt
         pip install -r report-service/requirements.txt
@@ -293,40 +358,43 @@ jobs:
         
         # Test complete user journey
         echo "✅ Testing complete user journey..."
+        cd auth-service
         python -c "
         from fastapi.testclient import TestClient
-        from auth_service.app.main import app as auth_app
-        from finance_service.app.main import app as finance_app
-        from report_service.app.main import app as report_app
+        from app.main import app
         
         # Test 1: User registration
         print('Step 1: User registration...')
-        auth_client = TestClient(auth_app)
+        client = TestClient(app)
         user_data = {
             'email': 'e2e_test@example.com',
             'password': 'password123',
             'role': 'user',
             'branch_id': 1
         }
-        response = auth_client.post('/register', json=user_data)
+        response = client.post('/register', json=user_data)
         print(f'Registration: {response.status_code}')
+        assert response.status_code == 200
         
         # Test 2: User login
         print('Step 2: User login...')
         login_data = {'email': 'e2e_test@example.com', 'password': 'password123'}
-        response = auth_client.post('/login', json=login_data)
+        response = client.post('/login', json=login_data)
         print(f'Login: {response.status_code}')
+        assert response.status_code == 200
         
         # Test 3: Access protected endpoints
         print('Step 3: Access protected endpoints...')
         if response.status_code == 200:
             token = response.json().get('access_token')
             headers = {'Authorization': f'Bearer {token}'}
-            response = auth_client.get('/users', headers=headers)
+            response = client.get('/users', headers=headers)
             print(f'Protected access: {response.status_code}')
+            assert response.status_code == 200
         
         print('✅ E2E test completed successfully!')
         "
+        cd ..
     
     - name: E2E test summary
       run: |
