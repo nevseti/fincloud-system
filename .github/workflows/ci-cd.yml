@@ -8,6 +8,10 @@ on:
 
 env:
   PYTHON_VERSION: '3.11'
+  # Use SQLite for testing instead of PostgreSQL
+  AUTH_DATABASE_URL: "sqlite:///./test_auth.db"
+  FINANCE_DATABASE_URL: "sqlite:///./test_finance.db"
+  SECRET_KEY: "test-secret-key-for-jwt"
 
 jobs:
   # ===========================================
@@ -72,6 +76,10 @@ jobs:
         pip install -r ${{ matrix.service }}/requirements.txt
     
     - name: Run unit tests
+      env:
+        AUTH_DATABASE_URL: ${{ env.AUTH_DATABASE_URL }}
+        FINANCE_DATABASE_URL: ${{ env.FINANCE_DATABASE_URL }}
+        SECRET_KEY: ${{ env.SECRET_KEY }}
       run: |
         echo "🧪 Running unit tests for ${{ matrix.service }}..."
         cd ${{ matrix.service }}
@@ -130,6 +138,10 @@ jobs:
         pip install -r report-service/requirements.txt
     
     - name: Run integration tests
+      env:
+        AUTH_DATABASE_URL: ${{ env.AUTH_DATABASE_URL }}
+        FINANCE_DATABASE_URL: ${{ env.FINANCE_DATABASE_URL }}
+        SECRET_KEY: ${{ env.SECRET_KEY }}
       run: |
         echo "🔗 Running integration tests..."
         
@@ -194,6 +206,10 @@ jobs:
         pip install -r report-service/requirements.txt
     
     - name: Run API tests
+      env:
+        AUTH_DATABASE_URL: ${{ env.AUTH_DATABASE_URL }}
+        FINANCE_DATABASE_URL: ${{ env.FINANCE_DATABASE_URL }}
+        SECRET_KEY: ${{ env.SECRET_KEY }}
       run: |
         echo "🌐 Running API tests..."
         
@@ -280,6 +296,10 @@ jobs:
         pip install -r auth-service/requirements.txt
     
     - name: Run security tests
+      env:
+        AUTH_DATABASE_URL: ${{ env.AUTH_DATABASE_URL }}
+        FINANCE_DATABASE_URL: ${{ env.FINANCE_DATABASE_URL }}
+        SECRET_KEY: ${{ env.SECRET_KEY }}
       run: |
         echo "🔒 Running security tests..."
         
@@ -353,6 +373,10 @@ jobs:
         pip install -r report-service/requirements.txt
     
     - name: Run E2E tests
+      env:
+        AUTH_DATABASE_URL: ${{ env.AUTH_DATABASE_URL }}
+        FINANCE_DATABASE_URL: ${{ env.FINANCE_DATABASE_URL }}
+        SECRET_KEY: ${{ env.SECRET_KEY }}
       run: |
         echo "🎭 Running End-to-End tests..."
         
