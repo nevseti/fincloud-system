@@ -8,4 +8,5 @@ sqlalchemy==2.0.23
 psycopg2-binary==2.9.9
 alembic==1.12.1
 pydantic[email]
+httpx==0.25.2
 # CORS handled manually; removed fastapi-cors due to unavailable version
