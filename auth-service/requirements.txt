@@ -9,9 +9,3 @@ psycopg2-binary==2.9.9
 alembic==1.12.1
 pydantic[email]
 # CORS handled manually in code; package removed due to unavailable version
-
-# Testing dependencies
-pytest==7.4.3
-pytest-asyncio==0.21.1
-pytest-cov==4.1.0
-httpx==0.25.2
