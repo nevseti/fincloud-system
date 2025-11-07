@@ -24,7 +24,7 @@ services:
 
   # Auth Service
   auth-service:
-    image: fincloud-auth:local
+    image: ${DOCKERHUB_USERNAME}/fincloud-auth:${IMAGE_TAG}
     environment:
       AUTH_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/auth_db
     networks:
@@ -42,7 +42,7 @@ services:
 
   # Finance Service
   finance-service:
-    image: fincloud-finance:local
+    image: ${DOCKERHUB_USERNAME}/fincloud-finance:${IMAGE_TAG}
     environment:
       FINANCE_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/finance_db
     networks:
@@ -60,7 +60,7 @@ services:
 
   # Report Service
   report-service:
-    image: fincloud-report:local
+    image: ${DOCKERHUB_USERNAME}/fincloud-report:${IMAGE_TAG}
     environment:
       FINANCE_SERVICE_URL: http://finance-service:8001
     networks:
@@ -78,7 +78,7 @@ services:
 
   # Frontend
   frontend:
-    image: fincloud-frontend:local
+    image: ${DOCKERHUB_USERNAME}/fincloud-frontend:${IMAGE_TAG}
     networks:
       - fincloud-network
     ports:
