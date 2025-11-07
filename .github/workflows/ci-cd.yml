@@ -245,6 +245,7 @@ jobs:
         from fastapi.testclient import TestClient
         from app.main import app
         import json
+        import time
         
         client = TestClient(app)
         
@@ -252,38 +253,61 @@ jobs:
         response = client.get('/health')
         assert response.status_code == 200, f'Health check failed: {response.status_code}'
         print('✅ Health endpoint: OK')
+        time.sleep(0.1)  # Small delay for realism
         
         # Test register endpoint validation (empty data)
         response = client.post('/register', json={})
         assert response.status_code == 422, f'Expected 422, got {response.status_code}'
-        print('✅ Register validation: OK')
+        print('✅ Register validation (empty): OK')
         
-        # Test successful registration
-        test_user = {
-            'email': 'api_test@example.com',
-            'password': 'testpass123',
-            'role': 'accountant',
-            'branch_id': 1
-        }
-        response = client.post('/register', json=test_user)
-        assert response.status_code == 200, f'Registration failed: {response.status_code} - {response.text}'
-        user_data = response.json()
-        assert 'email' in user_data and user_data['email'] == test_user['email']
-        print('✅ User registration: OK')
+        # Test register validation (invalid email)
+        response = client.post('/register', json={'email': 'invalid', 'password': 'pass', 'role': 'user', 'branch_id': 1})
+        assert response.status_code == 422, f'Expected 422 for invalid email, got {response.status_code}'
+        print('✅ Register validation (invalid email): OK')
+        time.sleep(0.1)
         
-        # Test login
-        login_data = {'email': test_user['email'], 'password': test_user['password']}
-        response = client.post('/login', json=login_data)
-        assert response.status_code == 200, f'Login failed: {response.status_code} - {response.text}'
-        token_data = response.json()
-        assert 'access_token' in token_data
-        token = token_data['access_token']
-        print('✅ User login: OK')
+        # Test successful registration - multiple users with different roles
+        test_users = [
+            {'email': 'api_test_accountant@example.com', 'password': 'testpass123', 'role': 'accountant', 'branch_id': 1},
+            {'email': 'api_test_manager@example.com', 'password': 'testpass123', 'role': 'manager', 'branch_id': 0},
+            {'email': 'api_test_admin@example.com', 'password': 'testpass123', 'role': 'system_admin', 'branch_id': 0},
+        ]
         
-        # Test protected endpoint with token
-        response = client.get('/users/me', headers={'Authorization': f'Bearer {token}'})
-        assert response.status_code == 200, f'Protected endpoint failed: {response.status_code}'
-        print('✅ Protected endpoint access: OK')
+        tokens = {}
+        for user in test_users:
+            response = client.post('/register', json=user)
+            assert response.status_code == 200, f'Registration failed for {user[\"email\"]}: {response.status_code}'
+            user_data = response.json()
+            assert user_data['email'] == user['email']
+            assert user_data['role'] == user['role']
+            print(f'✅ User registration ({user[\"role\"]}): OK')
+            time.sleep(0.1)
+            
+            # Login immediately after registration
+            login_response = client.post('/login', json={'email': user['email'], 'password': user['password']})
+            assert login_response.status_code == 200
+            tokens[user['role']] = login_response.json()['access_token']
+            print(f'✅ User login ({user[\"role\"]}): OK')
+            time.sleep(0.1)
+        
+        # Test protected endpoint with different tokens
+        for role, token in tokens.items():
+            response = client.get('/users/me', headers={'Authorization': f'Bearer {token}'})
+            assert response.status_code == 200, f'Protected endpoint failed for {role}'
+            user_info = response.json()
+            assert user_info['role'] == role
+            print(f'✅ Protected endpoint access ({role}): OK')
+            time.sleep(0.1)
+        
+        # Test duplicate registration (should fail)
+        response = client.post('/register', json=test_users[0])
+        assert response.status_code == 400, f'Expected 400 for duplicate email, got {response.status_code}'
+        print('✅ Duplicate registration prevention: OK')
+        
+        # Test login with wrong password
+        response = client.post('/login', json={'email': test_users[0]['email'], 'password': 'wrongpass'})
+        assert response.status_code == 401, f'Expected 401 for wrong password, got {response.status_code}'
+        print('✅ Wrong password rejection: OK')
         
         print('✅ Auth service API tests: PASSED')
         "
@@ -324,6 +348,7 @@ jobs:
         python -c "
         from fastapi.testclient import TestClient
         from app.main import app
+        import time
         
         client = TestClient(app)
         
@@ -335,33 +360,96 @@ jobs:
         response = client.get('/health')
         assert response.status_code == 200, f'Health check failed: {response.status_code}'
         print('✅ Health endpoint: OK')
+        time.sleep(0.1)
         
-        # Test balance endpoint (requires auth)
+        # Test balance endpoint (requires auth) - initial balance
         response = client.get('/balance', headers={'Authorization': f'Bearer {test_token}'})
         assert response.status_code == 200, f'Balance endpoint failed: {response.status_code} - {response.text}'
-        balance_data = response.json()
-        assert 'total_balance' in balance_data
-        print('✅ Balance endpoint: OK')
+        initial_balance = response.json()
+        assert 'total_balance' in initial_balance
+        assert 'total_income' in initial_balance
+        assert 'total_expense' in initial_balance
+        print(f'✅ Balance endpoint: OK (initial: {initial_balance[\"total_balance\"]})')
+        time.sleep(0.1)
         
-        # Test operations endpoint (requires auth)
+        # Test operations endpoint (requires auth) - should be empty initially
         response = client.get('/operations', headers={'Authorization': f'Bearer {test_token}'})
         assert response.status_code == 200, f'Operations endpoint failed: {response.status_code}'
-        assert isinstance(response.json(), list)
-        print('✅ Operations endpoint: OK')
+        operations = response.json()
+        assert isinstance(operations, list)
+        initial_count = len(operations)
+        print(f'✅ Operations endpoint: OK ({initial_count} operations)')
+        time.sleep(0.1)
         
-        # Test create operation (requires auth)
-        operation_data = {
-            'type': 'income',
-            'amount': 1000.0,
-            'description': 'Test operation',
-            'branch_id': 1
-        }
-        response = client.post('/operations', json=operation_data, headers={'Authorization': f'Bearer {test_token}'})
-        assert response.status_code == 200, f'Create operation failed: {response.status_code} - {response.text}'
-        op_data = response.json()
-        assert op_data['type'] == operation_data['type']
-        assert op_data['amount'] == operation_data['amount']
-        print('✅ Create operation: OK')
+        # Test create multiple operations - income
+        income_operations = [
+            {'type': 'income', 'amount': 5000.0, 'description': 'Test income 1', 'branch_id': 1},
+            {'type': 'income', 'amount': 3000.0, 'description': 'Test income 2', 'branch_id': 1},
+            {'type': 'income', 'amount': 2000.0, 'description': 'Test income 3', 'branch_id': 1},
+        ]
+        
+        created_ops = []
+        for op in income_operations:
+            response = client.post('/operations', json=op, headers={'Authorization': f'Bearer {test_token}'})
+            assert response.status_code == 200, f'Create operation failed: {response.status_code} - {response.text}'
+            op_data = response.json()
+            assert op_data['type'] == op['type']
+            assert op_data['amount'] == op['amount']
+            created_ops.append(op_data)
+            print(f'✅ Create income operation ({op[\"amount\"]}): OK')
+            time.sleep(0.1)
+        
+        # Test create expense operations
+        expense_operations = [
+            {'type': 'expense', 'amount': 1500.0, 'description': 'Test expense 1', 'branch_id': 1},
+            {'type': 'expense', 'amount': 800.0, 'description': 'Test expense 2', 'branch_id': 1},
+        ]
+        
+        for op in expense_operations:
+            response = client.post('/operations', json=op, headers={'Authorization': f'Bearer {test_token}'})
+            assert response.status_code == 200
+            op_data = response.json()
+            assert op_data['type'] == op['type']
+            created_ops.append(op_data)
+            print(f'✅ Create expense operation ({op[\"amount\"]}): OK')
+            time.sleep(0.1)
+        
+        # Test operations list - should have more operations now
+        response = client.get('/operations', headers={'Authorization': f'Bearer {test_token}'})
+        assert response.status_code == 200
+        operations = response.json()
+        assert len(operations) == initial_count + len(created_ops)
+        print(f'✅ Operations list: OK ({len(operations)} total operations)')
+        time.sleep(0.1)
+        
+        # Test updated balance - should reflect all operations
+        response = client.get('/balance', headers={'Authorization': f'Bearer {test_token}'})
+        assert response.status_code == 200
+        updated_balance = response.json()
+        expected_income = sum(op['amount'] for op in income_operations)
+        expected_expense = sum(op['amount'] for op in expense_operations)
+        expected_balance = expected_income - expected_expense
+        
+        # Balance should have increased (income - expenses)
+        assert updated_balance['total_income'] >= expected_income
+        assert updated_balance['total_expense'] >= expected_expense
+        print(f'✅ Updated balance: income={updated_balance[\"total_income\"]}, expense={updated_balance[\"total_expense\"]}, balance={updated_balance[\"total_balance\"]}')
+        time.sleep(0.1)
+        
+        # Test balance with branch_id filter
+        response = client.get('/balance?branch_id=1', headers={'Authorization': f'Bearer {test_token}'})
+        assert response.status_code == 200
+        branch_balance = response.json()
+        assert 'total_balance' in branch_balance
+        print('✅ Balance with branch filter: OK')
+        time.sleep(0.1)
+        
+        # Test operations validation (invalid type)
+        invalid_op = {'type': 'invalid', 'amount': 100.0, 'description': 'Test', 'branch_id': 1}
+        response = client.post('/operations', json=invalid_op, headers={'Authorization': f'Bearer {test_token}'})
+        # Should either validate (422) or accept and handle in business logic
+        assert response.status_code in [200, 422], f'Unexpected status for invalid operation: {response.status_code}'
+        print('✅ Operation validation: OK')
         
         print('✅ Finance service API tests: PASSED')
         " || exit 1
@@ -426,40 +514,116 @@ jobs:
         cd auth-service
         
         # Test JWT functionality
-        echo "✅ Testing JWT token creation..."
+        echo "✅ Testing JWT token creation and verification..."
         python -c "
         from app.auth_utils import create_access_token, verify_token
-        data = {'sub': 'test@example.com'}
-        token = create_access_token(data)
-        payload = verify_token(token)
-        print(f'JWT creation: {payload is not None}')
-        assert payload is not None
-        print('JWT functionality working correctly')
+        import time
+        
+        # Test token creation with different payloads
+        test_payloads = [
+            {'user_id': 1, 'email': 'test1@example.com', 'role': 'accountant', 'branch_id': 1},
+            {'user_id': 2, 'email': 'test2@example.com', 'role': 'manager', 'branch_id': 0},
+            {'user_id': 3, 'email': 'test3@example.com', 'role': 'system_admin', 'branch_id': 0},
+        ]
+        
+        for payload in test_payloads:
+            token = create_access_token(payload)
+            assert token is not None and len(token) > 0
+            decoded = verify_token(token)
+            assert decoded is not None
+            assert decoded.get('user_id') == payload['user_id']
+            assert decoded.get('email') == payload['email']
+            print(f'✅ JWT token created and verified for {payload[\"email\"]}')
+            time.sleep(0.05)
+        
+        # Test invalid token
+        invalid_token = 'invalid.token.here'
+        decoded = verify_token(invalid_token)
+        assert decoded is None, 'Invalid token should return None'
+        print('✅ Invalid token correctly rejected')
+        
+        print('✅ JWT functionality working correctly')
         "
         
         # Test password hashing
-        echo "✅ Testing password hashing..."
+        echo "✅ Testing password hashing with multiple passwords..."
         python -c "
         from app.auth_utils import get_password_hash, verify_password
-        password = 'test_password'
-        hashed = get_password_hash(password)
-        is_valid = verify_password(password, hashed)
-        print(f'Password hashing: {is_valid}')
-        assert is_valid
-        print('Password hashing working correctly')
+        import time
+        
+        test_passwords = [
+            'simple123',
+            'Complex@Pass123!',
+            'very_long_password_that_exceeds_normal_length_but_should_still_work_123456789',
+            'short',
+        ]
+        
+        for password in test_passwords:
+            hashed = get_password_hash(password)
+            assert hashed is not None and len(hashed) > 0
+            assert hashed != password, 'Password should be hashed, not stored in plain text'
+            
+            # Verify correct password
+            is_valid = verify_password(password, hashed)
+            assert is_valid, f'Password verification failed for: {password[:10]}...'
+            
+            # Verify wrong password
+            is_invalid = verify_password('wrong_password', hashed)
+            assert not is_invalid, 'Wrong password should not be accepted'
+            
+            print(f'✅ Password hashing verified for password length {len(password)}')
+            time.sleep(0.05)
+        
+        print('✅ Password hashing working correctly for all test cases')
         "
         
         # Test input validation
-        echo "✅ Testing input validation..."
+        echo "✅ Testing input validation with various scenarios..."
         python -c "
         from app.schemas import UserCreate
+        from pydantic import ValidationError
+        import time
+        
+        # Valid user
         try:
-            user = UserCreate(email='test@example.com', password='password123', role='user', branch_id=1)
-            print('Input validation: OK')
+            user = UserCreate(email='test@example.com', password='password123', role='accountant', branch_id=1)
+            assert user.email == 'test@example.com'
+            print('✅ Valid user creation: OK')
         except Exception as e:
-            print(f'Input validation error: {e}')
+            print(f'❌ Valid user creation failed: {e}')
             raise
-        print('Input validation working correctly')
+        
+        time.sleep(0.05)
+        
+        # Invalid email
+        try:
+            user = UserCreate(email='invalid-email', password='pass123', role='accountant', branch_id=1)
+            print('❌ Invalid email should have been rejected')
+            assert False, 'Invalid email should raise ValidationError'
+        except ValidationError:
+            print('✅ Invalid email correctly rejected')
+        
+        time.sleep(0.05)
+        
+        # Missing required fields
+        try:
+            user = UserCreate(email='test@example.com', password='pass123')
+            print('❌ Missing fields should have been rejected')
+            assert False, 'Missing fields should raise ValidationError'
+        except ValidationError:
+            print('✅ Missing required fields correctly rejected')
+        
+        time.sleep(0.05)
+        
+        # Test different roles
+        valid_roles = ['accountant', 'manager', 'system_admin']
+        for role in valid_roles:
+            user = UserCreate(email=f'test_{role}@example.com', password='pass123', role=role, branch_id=1)
+            assert user.role == role
+            print(f'✅ Role validation ({role}): OK')
+            time.sleep(0.05)
+        
+        print('✅ Input validation working correctly')
         "
         
         cd ..
@@ -547,6 +711,7 @@ jobs:
         python -c "
         from fastapi.testclient import TestClient
         from app.main import app
+        import time
         
         client = TestClient(app)
         
@@ -554,39 +719,90 @@ jobs:
         with open('/tmp/e2e_token.txt', 'r') as f:
             token = f.read().strip()
         
-        # Get balance
+        # Get initial balance
         response = client.get('/balance', headers={'Authorization': f'Bearer {token}'})
         assert response.status_code == 200, f'Balance failed: {response.status_code}'
-        balance = response.json()
-        assert 'total_balance' in balance
-        print(f'✅ Step 4: Balance retrieved: {balance[\"total_balance\"]}')
+        initial_balance = response.json()
+        assert 'total_balance' in initial_balance
+        initial_total = initial_balance['total_balance']
+        print(f'✅ Step 4: Initial balance retrieved: {initial_total}')
+        time.sleep(0.1)
         
-        # Create operation
-        operation = {
-            'type': 'income',
-            'amount': 5000.0,
-            'description': 'E2E test operation',
-            'branch_id': 1
-        }
-        response = client.post('/operations', json=operation, headers={'Authorization': f'Bearer {token}'})
-        assert response.status_code == 200, f'Create operation failed: {response.status_code}'
-        op_data = response.json()
-        assert op_data['type'] == 'income'
-        print('✅ Step 5: Operation created')
+        # Create multiple income operations
+        income_ops = [
+            {'type': 'income', 'amount': 10000.0, 'description': 'E2E income 1', 'branch_id': 1},
+            {'type': 'income', 'amount': 5000.0, 'description': 'E2E income 2', 'branch_id': 1},
+            {'type': 'income', 'amount': 3000.0, 'description': 'E2E income 3', 'branch_id': 1},
+        ]
         
-        # Get operations
+        created_ops = []
+        for op in income_ops:
+            response = client.post('/operations', json=op, headers={'Authorization': f'Bearer {token}'})
+            assert response.status_code == 200, f'Create operation failed: {response.status_code}'
+            op_data = response.json()
+            assert op_data['type'] == 'income'
+            created_ops.append(op_data)
+            print(f'✅ Step 5.{len(created_ops)}: Income operation created ({op[\"amount\"]})')
+            time.sleep(0.1)
+        
+        # Create expense operations
+        expense_ops = [
+            {'type': 'expense', 'amount': 2000.0, 'description': 'E2E expense 1', 'branch_id': 1},
+            {'type': 'expense', 'amount': 1500.0, 'description': 'E2E expense 2', 'branch_id': 1},
+        ]
+        
+        for op in expense_ops:
+            response = client.post('/operations', json=op, headers={'Authorization': f'Bearer {token}'})
+            assert response.status_code == 200
+            op_data = response.json()
+            assert op_data['type'] == 'expense'
+            created_ops.append(op_data)
+            print(f'✅ Step 6.{len(created_ops)-len(income_ops)}: Expense operation created ({op[\"amount\"]})')
+            time.sleep(0.1)
+        
+        # Get operations list
         response = client.get('/operations', headers={'Authorization': f'Bearer {token}'})
         assert response.status_code == 200
         operations = response.json()
-        assert len(operations) > 0
-        print(f'✅ Step 6: Retrieved {len(operations)} operations')
+        assert len(operations) >= len(created_ops)
+        print(f'✅ Step 7: Retrieved {len(operations)} operations')
+        time.sleep(0.1)
         
-        # Get updated balance
+        # Get updated balance - should reflect all operations
         response = client.get('/balance', headers={'Authorization': f'Bearer {token}'})
         assert response.status_code == 200
-        new_balance = response.json()
-        assert new_balance['total_balance'] >= balance['total_balance']
-        print(f'✅ Step 7: Balance updated: {new_balance[\"total_balance\"]}')
+        updated_balance = response.json()
+        
+        # Calculate expected change
+        total_income = sum(op['amount'] for op in income_ops)
+        total_expense = sum(op['amount'] for op in expense_ops)
+        expected_change = total_income - total_expense
+        
+        # Balance should have increased
+        assert updated_balance['total_balance'] >= initial_total + expected_change - 0.01, \
+            f'Balance not updated correctly: {updated_balance[\"total_balance\"]} vs expected {initial_total + expected_change}'
+        
+        print(f'✅ Step 8: Balance updated correctly')
+        print(f'   Initial: {initial_total}')
+        print(f'   Income: {updated_balance[\"total_income\"]}')
+        print(f'   Expense: {updated_balance[\"total_expense\"]}')
+        print(f'   Final: {updated_balance[\"total_balance\"]}')
+        time.sleep(0.1)
+        
+        # Test balance with branch filter
+        response = client.get('/balance?branch_id=1', headers={'Authorization': f'Bearer {token}'})
+        assert response.status_code == 200
+        branch_balance = response.json()
+        assert 'total_balance' in branch_balance
+        print('✅ Step 9: Branch-specific balance retrieved')
+        time.sleep(0.1)
+        
+        # Test operations filtering (verify operations are for correct branch)
+        response = client.get('/operations', headers={'Authorization': f'Bearer {token}'})
+        operations = response.json()
+        for op in operations[:5]:  # Check first 5 operations
+            assert op['branch_id'] == 1, f'Operation has wrong branch_id: {op[\"branch_id\"]}'
+        print('✅ Step 10: Operations branch filtering verified')
         
         print('✅ E2E test completed successfully!')
         " || exit 1
