@@ -465,97 +465,132 @@ jobs:
   # 7. DOCKER BUILD TESTS
   # ===========================================
   docker-build:
-    name: 🐳 Docker Build Tests
-    runs-on: ubuntu-latest
+    name: 🐳 Build & Push Docker Images
+    runs-on: [self-hosted, Linux, X64]
+    env:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+    outputs:
+      image-tag: ${{ steps.meta.outputs.image_tag }}
     
     steps:
     - uses: actions/checkout@v4
-    
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-    
-    - name: Build auth-service
+
+    - name: Determine image tag
+      id: meta
       run: |
-        echo "🐳 Building auth-service..."
-        docker build -t fincloud-auth:test ./auth-service
-        echo "✅ Auth service built successfully"
-    
-    - name: Build finance-service
+        IMAGE_TAG="${GITHUB_SHA::7}"
+        echo "image_tag=${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
+        echo "IMAGE_TAG=${IMAGE_TAG}" >> "$GITHUB_ENV"
+        echo "🏷️ Using image tag: ${IMAGE_TAG}"
+
+    - name: Authenticate to Docker Hub
       run: |
-        echo "🐳 Building finance-service..."
-        docker build -t fincloud-finance:test ./finance-service
-        echo "✅ Finance service built successfully"
-    
-    - name: Build report-service
+        echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+
+    - name: Build and push auth-service image
+      env:
+        IMAGE_TAG: ${{ steps.meta.outputs.image_tag }}
       run: |
-        echo "🐳 Building report-service..."
-        docker build -t fincloud-report:test ./report-service
-        echo "✅ Report service built successfully"
-    
-    - name: Build frontend
+        set -e
+        docker build -t "$DOCKERHUB_USERNAME/fincloud-auth:${IMAGE_TAG}" ./auth-service
+        docker tag "$DOCKERHUB_USERNAME/fincloud-auth:${IMAGE_TAG}" "$DOCKERHUB_USERNAME/fincloud-auth:latest"
+        docker push "$DOCKERHUB_USERNAME/fincloud-auth:${IMAGE_TAG}"
+        docker push "$DOCKERHUB_USERNAME/fincloud-auth:latest"
+
+    - name: Build and push finance-service image
+      env:
+        IMAGE_TAG: ${{ steps.meta.outputs.image_tag }}
       run: |
-        echo "🐳 Building frontend..."
-        docker build -t fincloud-frontend:test ./frontend
-        echo "✅ Frontend built successfully"
-    
+        set -e
+        docker build -t "$DOCKERHUB_USERNAME/fincloud-finance:${IMAGE_TAG}" ./finance-service
+        docker tag "$DOCKERHUB_USERNAME/fincloud-finance:${IMAGE_TAG}" "$DOCKERHUB_USERNAME/fincloud-finance:latest"
+        docker push "$DOCKERHUB_USERNAME/fincloud-finance:${IMAGE_TAG}"
+        docker push "$DOCKERHUB_USERNAME/fincloud-finance:latest"
+
+    - name: Build and push report-service image
+      env:
+        IMAGE_TAG: ${{ steps.meta.outputs.image_tag }}
+      run: |
+        set -e
+        docker build -t "$DOCKERHUB_USERNAME/fincloud-report:${IMAGE_TAG}" ./report-service
+        docker tag "$DOCKERHUB_USERNAME/fincloud-report:${IMAGE_TAG}" "$DOCKERHUB_USERNAME/fincloud-report:latest"
+        docker push "$DOCKERHUB_USERNAME/fincloud-report:${IMAGE_TAG}"
+        docker push "$DOCKERHUB_USERNAME/fincloud-report:latest"
+
+    - name: Build and push frontend image
+      env:
+        IMAGE_TAG: ${{ steps.meta.outputs.image_tag }}
+      run: |
+        set -e
+        docker build -t "$DOCKERHUB_USERNAME/fincloud-frontend:${IMAGE_TAG}" ./frontend
+        docker tag "$DOCKERHUB_USERNAME/fincloud-frontend:${IMAGE_TAG}" "$DOCKERHUB_USERNAME/fincloud-frontend:latest"
+        docker push "$DOCKERHUB_USERNAME/fincloud-frontend:${IMAGE_TAG}"
+        docker push "$DOCKERHUB_USERNAME/fincloud-frontend:latest"
+
     - name: Docker build summary
+      env:
+        IMAGE_TAG: ${{ steps.meta.outputs.image_tag }}
       run: |
-        echo "## 🐳 Docker Build Tests" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Auth service**: Built successfully" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Finance service**: Built successfully" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Report service**: Built successfully" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Frontend**: Built successfully" >> $GITHUB_STEP_SUMMARY
+        echo "## 🐳 Build & Push Docker Images" >> $GITHUB_STEP_SUMMARY
+        echo "✅ **Auth service**: fincloud-auth:${IMAGE_TAG} / latest" >> $GITHUB_STEP_SUMMARY
+        echo "✅ **Finance service**: fincloud-finance:${IMAGE_TAG} / latest" >> $GITHUB_STEP_SUMMARY
+        echo "✅ **Report service**: fincloud-report:${IMAGE_TAG} / latest" >> $GITHUB_STEP_SUMMARY
+        echo "✅ **Frontend**: fincloud-frontend:${IMAGE_TAG} / latest" >> $GITHUB_STEP_SUMMARY
 
   # ===========================================
   # 8. DEPLOYMENT (Continuous Deployment)
   # ===========================================
   deployment:
     name: 🚀 Production Deployment
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64]
     needs: [code-quality, unit-tests, integration-tests, api-tests, security-tests, e2e-tests, docker-build]
     if: github.ref == 'refs/heads/main'
+    env:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
     
     steps:
     - uses: actions/checkout@v4
     
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-    
-    - name: Build production images
+    - name: Authenticate to Docker Hub
       run: |
-        echo "🏗️ Building production images..."
-        docker build -t fincloud-auth:prod ./auth-service
-        docker build -t fincloud-finance:prod ./finance-service
-        docker build -t fincloud-report:prod ./report-service
-        docker build -t fincloud-frontend:prod ./frontend
-        echo "✅ Production images built successfully"
-    
-    - name: Push to Docker Registry
-      run: |
-        echo "🐳 Pushing images to production registry..."
-        echo "📦 fincloud-auth:prod -> registry.fincloud.com/auth:latest"
-        echo "📦 fincloud-finance:prod -> registry.fincloud.com/finance:latest"
-        echo "📦 fincloud-report:prod -> registry.fincloud.com/report:latest"
-        echo "📦 fincloud-frontend:prod -> registry.fincloud.com/frontend:latest"
-        echo "✅ Images pushed to registry successfully"
+        echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
     
     - name: Deploy to Production
+      env:
+        IMAGE_TAG: ${{ needs.docker-build.outputs.image-tag }}
       run: |
+        set -e
+        export IMAGE_TAG
+        export DOCKERHUB_USERNAME
+
         echo "🚀 Deploying to production environment..."
         echo "🌐 Production URL: https://fincloud.prod.com"
         echo "🔧 Environment: production"
-        echo "📊 Database: PostgreSQL (production)"
-        echo "🔐 Security: JWT + HTTPS enabled"
-        echo "✅ Production deployment initiated"
-    
-    - name: Update Docker Swarm Stack
-      run: |
-        echo "🐳 Updating Docker Swarm production stack..."
-        echo "📋 Stack: fincloud-production"
-        echo "🔄 Services: auth, finance, report, frontend, postgres"
-        echo "⚖️ Load balancing: enabled"
-        echo "🛡️ Security: network isolation enabled"
-        echo "✅ Docker Swarm stack updated successfully"
+        echo "📦 Using Docker Hub namespace: ${DOCKERHUB_USERNAME}"
+        echo "🏷️ Deploying tag: ${IMAGE_TAG}"
+
+        # Pull images first
+        docker pull "$DOCKERHUB_USERNAME/fincloud-auth:${IMAGE_TAG}"
+        docker pull "$DOCKERHUB_USERNAME/fincloud-finance:${IMAGE_TAG}"
+        docker pull "$DOCKERHUB_USERNAME/fincloud-report:${IMAGE_TAG}"
+        docker pull "$DOCKERHUB_USERNAME/fincloud-frontend:${IMAGE_TAG}"
+
+        # Install envsubst if not available
+        sudo apt-get update -qq && sudo apt-get install -y -qq gettext-base || true
+
+        # Substitute environment variables in docker-compose file
+        envsubst < docker-compose.swarm-simple.yml > docker-compose.swarm-deploy.yml
+
+        # Deploy stack
+        docker stack deploy --with-registry-auth -c docker-compose.swarm-deploy.yml fincloud
+
+        # Verify deployment
+        echo "✅ Waiting for services to start..."
+        sleep 5
+        docker stack services fincloud
+        docker service ls
     
     - name: Production Health Checks
       run: |
@@ -570,6 +605,8 @@ jobs:
         echo "🎉 All production services are healthy!"
     
     - name: Deployment Summary
+      env:
+        IMAGE_TAG: ${{ needs.docker-build.outputs.image-tag }}
       run: |
         echo "## 🚀 Production Deployment Summary" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
@@ -582,7 +619,8 @@ jobs:
         echo "### 🔧 Deployment Details" >> $GITHUB_STEP_SUMMARY
         echo "- **Environment**: Production" >> $GITHUB_STEP_SUMMARY
         echo "- **Database**: PostgreSQL (production)" >> $GITHUB_STEP_SUMMARY
-        echo "- **Container Registry**: registry.fincloud.com" >> $GITHUB_STEP_SUMMARY
+        echo "- **Container Registry**: docker.io/$DOCKERHUB_USERNAME" >> $GITHUB_STEP_SUMMARY
+        echo "- **Image Tag**: ${IMAGE_TAG}" >> $GITHUB_STEP_SUMMARY
         echo "- **Orchestration**: Docker Swarm" >> $GITHUB_STEP_SUMMARY
         echo "- **Load Balancer**: nginx" >> $GITHUB_STEP_SUMMARY
         echo "- **Security**: JWT + HTTPS" >> $GITHUB_STEP_SUMMARY
