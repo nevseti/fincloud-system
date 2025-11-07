@@ -570,6 +570,14 @@ jobs:
         echo "🔧 Environment: production"
         echo "📦 Using Docker Hub namespace: ${DOCKERHUB_USERNAME}"
         echo "🏷️ Deploying tag: ${IMAGE_TAG}"
+        
+        # Verify variables are set
+        if [ -z "$DOCKERHUB_USERNAME" ] || [ -z "$IMAGE_TAG" ]; then
+          echo "❌ ERROR: DOCKERHUB_USERNAME or IMAGE_TAG is not set!"
+          echo "DOCKERHUB_USERNAME=${DOCKERHUB_USERNAME}"
+          echo "IMAGE_TAG=${IMAGE_TAG}"
+          exit 1
+        fi
 
         # Pull images first
         docker pull "$DOCKERHUB_USERNAME/fincloud-auth:${IMAGE_TAG}"
@@ -581,7 +589,12 @@ jobs:
         sudo apt-get update -qq && sudo apt-get install -y -qq gettext-base || true
 
         # Substitute environment variables in docker-compose file
-        envsubst < docker-compose.swarm-simple.yml > docker-compose.swarm-deploy.yml
+        # Explicitly specify which variables to substitute
+        envsubst '${DOCKERHUB_USERNAME} ${IMAGE_TAG}' < docker-compose.swarm-simple.yml > docker-compose.swarm-deploy.yml
+        
+        # Verify substitution worked
+        echo "✅ Checking substituted values..."
+        grep "image:" docker-compose.swarm-deploy.yml | head -5
 
         # Deploy stack
         docker stack deploy --with-registry-auth -c docker-compose.swarm-deploy.yml fincloud
