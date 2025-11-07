@@ -236,7 +236,7 @@ jobs:
         FINANCE_DATABASE_URL: ${{ env.FINANCE_DATABASE_URL }}
         SECRET_KEY: ${{ env.SECRET_KEY }}
       run: |
-        echo "🌐 Running API tests..."
+        echo "🌐 Running comprehensive API tests..."
         
         # Test auth service endpoints
         echo "✅ Testing auth service endpoints..."
@@ -244,19 +244,48 @@ jobs:
         python -c "
         from fastapi.testclient import TestClient
         from app.main import app
+        import json
+        
         client = TestClient(app)
         
         # Test health endpoint
         response = client.get('/health')
-        print(f'Auth health: {response.status_code}')
-        assert response.status_code == 200
+        assert response.status_code == 200, f'Health check failed: {response.status_code}'
+        print('✅ Health endpoint: OK')
         
-        # Test register endpoint (should return validation error for empty data)
+        # Test register endpoint validation (empty data)
         response = client.post('/register', json={})
-        print(f'Auth register (empty): {response.status_code}')
-        assert response.status_code == 422
+        assert response.status_code == 422, f'Expected 422, got {response.status_code}'
+        print('✅ Register validation: OK')
         
-        print('Auth service endpoints working correctly')
+        # Test successful registration
+        test_user = {
+            'email': 'api_test@example.com',
+            'password': 'testpass123',
+            'role': 'accountant',
+            'branch_id': 1
+        }
+        response = client.post('/register', json=test_user)
+        assert response.status_code == 200, f'Registration failed: {response.status_code} - {response.text}'
+        user_data = response.json()
+        assert 'email' in user_data and user_data['email'] == test_user['email']
+        print('✅ User registration: OK')
+        
+        # Test login
+        login_data = {'email': test_user['email'], 'password': test_user['password']}
+        response = client.post('/login', json=login_data)
+        assert response.status_code == 200, f'Login failed: {response.status_code} - {response.text}'
+        token_data = response.json()
+        assert 'access_token' in token_data
+        token = token_data['access_token']
+        print('✅ User login: OK')
+        
+        # Test protected endpoint with token
+        response = client.get('/users/me', headers={'Authorization': f'Bearer {token}'})
+        assert response.status_code == 200, f'Protected endpoint failed: {response.status_code}'
+        print('✅ Protected endpoint access: OK')
+        
+        print('✅ Auth service API tests: PASSED')
         "
         cd ..
         
@@ -266,14 +295,46 @@ jobs:
         python -c "
         from fastapi.testclient import TestClient
         from app.main import app
+        from app import auth_utils
+        
         client = TestClient(app)
         
         # Test health endpoint
         response = client.get('/health')
-        print(f'Finance health: {response.status_code}')
-        assert response.status_code == 200
+        assert response.status_code == 200, f'Health check failed: {response.status_code}'
+        print('✅ Health endpoint: OK')
         
-        print('Finance service endpoints working correctly')
+        # Create a test token for finance service
+        test_token = auth_utils.create_access_token({'user_id': 1, 'email': 'test@example.com', 'role': 'accountant', 'branch_id': 1})
+        
+        # Test balance endpoint (requires auth)
+        response = client.get('/balance', headers={'Authorization': f'Bearer {test_token}'})
+        assert response.status_code == 200, f'Balance endpoint failed: {response.status_code} - {response.text}'
+        balance_data = response.json()
+        assert 'total_balance' in balance_data
+        print('✅ Balance endpoint: OK')
+        
+        # Test operations endpoint (requires auth)
+        response = client.get('/operations', headers={'Authorization': f'Bearer {test_token}'})
+        assert response.status_code == 200, f'Operations endpoint failed: {response.status_code}'
+        assert isinstance(response.json(), list)
+        print('✅ Operations endpoint: OK')
+        
+        # Test create operation (requires auth)
+        operation_data = {
+            'type': 'income',
+            'amount': 1000.0,
+            'description': 'Test operation',
+            'branch_id': 1
+        }
+        response = client.post('/operations', json=operation_data, headers={'Authorization': f'Bearer {test_token}'})
+        assert response.status_code == 200, f'Create operation failed: {response.status_code} - {response.text}'
+        op_data = response.json()
+        assert op_data['type'] == operation_data['type']
+        assert op_data['amount'] == operation_data['amount']
+        print('✅ Create operation: OK')
+        
+        print('✅ Finance service API tests: PASSED')
         "
         cd ..
         
@@ -283,14 +344,15 @@ jobs:
         python -c "
         from fastapi.testclient import TestClient
         from app.main import app
+        
         client = TestClient(app)
         
         # Test health endpoint
         response = client.get('/health')
-        print(f'Report health: {response.status_code}')
-        assert response.status_code == 200
+        assert response.status_code == 200, f'Health check failed: {response.status_code}'
+        print('✅ Health endpoint: OK')
         
-        print('Report service endpoints working correctly')
+        print('✅ Report service API tests: PASSED')
         "
         cd ..
     
@@ -298,7 +360,11 @@ jobs:
       run: |
         echo "## 🌐 API Tests" >> $GITHUB_STEP_SUMMARY
         echo "✅ **Health endpoints**: All services respond to /health" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **API structure**: All endpoints are properly configured" >> $GITHUB_STEP_SUMMARY
+        echo "✅ **User registration**: Users can register successfully" >> $GITHUB_STEP_SUMMARY
+        echo "✅ **User login**: Login returns valid JWT tokens" >> $GITHUB_STEP_SUMMARY
+        echo "✅ **Protected endpoints**: Token-based authentication works" >> $GITHUB_STEP_SUMMARY
+        echo "✅ **Finance operations**: Balance and operations endpoints work" >> $GITHUB_STEP_SUMMARY
+        echo "✅ **Create operations**: Can create financial operations" >> $GITHUB_STEP_SUMMARY
         echo "✅ **Response codes**: All endpoints return valid HTTP codes" >> $GITHUB_STEP_SUMMARY
 
   # ===========================================
@@ -405,52 +471,96 @@ jobs:
       run: |
         echo "🎭 Running End-to-End tests..."
         
-        # Test complete user journey
-        echo "✅ Testing complete user journey..."
+        # Test complete user journey - Auth Service
+        echo "✅ Testing complete user journey (Auth + Finance)..."
         cd auth-service
         python -c "
         from fastapi.testclient import TestClient
         from app.main import app
+        import os
         
-        # Test 1: User registration
-        print('Step 1: User registration...')
         client = TestClient(app)
+        
+        # Register user
         user_data = {
             'email': 'e2e_test@example.com',
             'password': 'password123',
-            'role': 'user',
+            'role': 'accountant',
             'branch_id': 1
         }
         response = client.post('/register', json=user_data)
-        print(f'Registration: {response.status_code}')
-        assert response.status_code == 200
-        print('✅ User registration successful')
+        assert response.status_code == 200, f'Registration failed: {response.status_code}'
+        print('✅ Step 1: User registered')
         
-        # Test 2: User login
-        print('Step 2: User login...')
+        # Login
         login_data = {'email': 'e2e_test@example.com', 'password': 'password123'}
         response = client.post('/login', json=login_data)
-        print(f'Login: {response.status_code}')
-        assert response.status_code == 200
-        print('✅ User login successful')
+        assert response.status_code == 200, f'Login failed: {response.status_code}'
+        token_data = response.json()
+        assert 'access_token' in token_data
+        token = token_data['access_token']
+        print('✅ Step 2: User logged in')
         
-        # Test 3: JWT token validation
-        print('Step 3: JWT token validation...')
-        if response.status_code == 200:
-            token_data = response.json()
-            print(f'Token received: {bool(token_data.get(\"access_token\"))}')
-            assert 'access_token' in token_data
-            print('✅ JWT token received successfully')
+        # Test protected endpoint
+        response = client.get('/users/me', headers={'Authorization': f'Bearer {token}'})
+        assert response.status_code == 200, f'Protected endpoint failed: {response.status_code}'
+        print('✅ Step 3: Protected endpoint accessed')
         
-        # Test 4: Health endpoint (always accessible)
-        print('Step 4: Health endpoint test...')
-        response = client.get('/health')
-        print(f'Health endpoint: {response.status_code}')
+        # Save token to file for finance service
+        with open('/tmp/e2e_token.txt', 'w') as f:
+            f.write(token)
+        " || exit 1
+        cd ..
+        
+        # Test Finance Service with token
+        echo "✅ Testing Finance Service integration..."
+        cd finance-service
+        python -c "
+        from fastapi.testclient import TestClient
+        from app.main import app
+        
+        client = TestClient(app)
+        
+        # Read token from file
+        with open('/tmp/e2e_token.txt', 'r') as f:
+            token = f.read().strip()
+        
+        # Get balance
+        response = client.get('/balance', headers={'Authorization': f'Bearer {token}'})
+        assert response.status_code == 200, f'Balance failed: {response.status_code}'
+        balance = response.json()
+        assert 'total_balance' in balance
+        print(f'✅ Step 4: Balance retrieved: {balance[\"total_balance\"]}')
+        
+        # Create operation
+        operation = {
+            'type': 'income',
+            'amount': 5000.0,
+            'description': 'E2E test operation',
+            'branch_id': 1
+        }
+        response = client.post('/operations', json=operation, headers={'Authorization': f'Bearer {token}'})
+        assert response.status_code == 200, f'Create operation failed: {response.status_code}'
+        op_data = response.json()
+        assert op_data['type'] == 'income'
+        print('✅ Step 5: Operation created')
+        
+        # Get operations
+        response = client.get('/operations', headers={'Authorization': f'Bearer {token}'})
         assert response.status_code == 200
-        print('✅ Health endpoint accessible')
+        operations = response.json()
+        assert len(operations) > 0
+        print(f'✅ Step 6: Retrieved {len(operations)} operations')
+        
+        # Get updated balance
+        response = client.get('/balance', headers={'Authorization': f'Bearer {token}'})
+        assert response.status_code == 200
+        new_balance = response.json()
+        assert new_balance['total_balance'] >= balance['total_balance']
+        print(f'✅ Step 7: Balance updated: {new_balance[\"total_balance\"]}')
         
         print('✅ E2E test completed successfully!')
-        "
+        " || exit 1
         cd ..
     
     - name: E2E test summary
@@ -459,7 +569,10 @@ jobs:
         echo "✅ **User registration**: Users can register successfully" >> $GITHUB_STEP_SUMMARY
         echo "✅ **User login**: Users can login and receive tokens" >> $GITHUB_STEP_SUMMARY
         echo "✅ **Protected access**: Authenticated users can access protected endpoints" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Complete journey**: Full user workflow tested" >> $GITHUB_STEP_SUMMARY
+        echo "✅ **Finance integration**: Can access finance service with auth token" >> $GITHUB_STEP_SUMMARY
+        echo "✅ **Operations**: Can create and retrieve financial operations" >> $GITHUB_STEP_SUMMARY
+        echo "✅ **Balance calculation**: Balance updates correctly after operations" >> $GITHUB_STEP_SUMMARY
+        echo "✅ **Complete journey**: Full user workflow from registration to financial operations tested" >> $GITHUB_STEP_SUMMARY
 
   # ===========================================
   # 7. DOCKER BUILD TESTS
