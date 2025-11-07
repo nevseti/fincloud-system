@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List
@@ -19,46 +20,14 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS middleware - ИСПРАВЛЕННАЯ ВЕРСИЯ
-@app.middleware("http")
-async def cors_middleware(request: Request, call_next):
-    if request.method == "OPTIONS":
-        response = JSONResponse(content={"message": "CORS preflight"})
-    else:
-        response = await call_next(request)
-    
-    # Добавляем CORS заголовки ко ВСЕМ ответам
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
-    response.headers["Access-Control-Allow-Credentials"] = "true"
-    
-    return response
-
-# Явные OPTIONS handlers для всех путей
-@app.options("/{path:path}")
-async def options_handler(path: str):
-    return JSONResponse(
-        content={"message": "CORS preflight"},
-        headers={
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
-            "Access-Control-Allow-Credentials": "true"
-        }
-    )
-
-@app.options("/")
-async def options_root():
-    return JSONResponse(
-        content={"message": "CORS preflight"},
-        headers={
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With", 
-            "Access-Control-Allow-Credentials": "true"
-        }
-    )
+# CORS middleware - используем встроенный CORSMiddleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # В продакшене лучше указать конкретные домены
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 security = HTTPBearer()
 
