@@ -291,34 +291,50 @@ jobs:
         
         # Test finance service endpoints
         echo "✅ Testing finance service endpoints..."
+        # First get a token from auth-service
+        cd auth-service
+        python -c "
+        from fastapi.testclient import TestClient
+        from app.main import app
+        import json
+        
+        client = TestClient(app)
+        
+        # Register user for finance tests
+        user_data = {
+            'email': 'finance_api_test@example.com',
+            'password': 'testpass123',
+            'role': 'accountant',
+            'branch_id': 1
+        }
+        client.post('/register', json=user_data)
+        
+        # Login to get token
+        login_response = client.post('/login', json={'email': 'finance_api_test@example.com', 'password': 'testpass123'})
+        token_data = login_response.json()
+        token = token_data['access_token']
+        
+        # Save token to file
+        with open('/tmp/finance_token.txt', 'w') as f:
+            f.write(token)
+        " || exit 1
+        cd ..
+        
         cd finance-service
         python -c "
         from fastapi.testclient import TestClient
         from app.main import app
-        import sys
-        import os
-        
-        # Add auth-service to path to import create_access_token
-        # We're in finance-service directory, so auth-service is at ../auth-service
-        current_dir = os.getcwd()
-        # If we're in finance-service, go up one level to root, then into auth-service
-        if current_dir.endswith('finance-service'):
-            root_dir = os.path.dirname(current_dir)
-        else:
-            root_dir = current_dir
-        auth_service_path = os.path.join(root_dir, 'auth-service')
-        sys.path.insert(0, auth_service_path)
-        from app.auth_utils import create_access_token
         
         client = TestClient(app)
+        
+        # Read token from file
+        with open('/tmp/finance_token.txt', 'r') as f:
+            test_token = f.read().strip()
         
         # Test health endpoint
         response = client.get('/health')
         assert response.status_code == 200, f'Health check failed: {response.status_code}'
         print('✅ Health endpoint: OK')
-        
-        # Create a test token using auth-service utils
-        test_token = create_access_token({'user_id': 1, 'email': 'test@example.com', 'role': 'accountant', 'branch_id': 1})
         
         # Test balance endpoint (requires auth)
         response = client.get('/balance', headers={'Authorization': f'Bearer {test_token}'})
@@ -348,7 +364,7 @@ jobs:
         print('✅ Create operation: OK')
         
         print('✅ Finance service API tests: PASSED')
-        "
+        " || exit 1
         cd ..
         
         # Test report service endpoints
