@@ -1098,23 +1098,51 @@ jobs:
         docker pull "$DOCKERHUB_USERNAME/fincloud-report:${IMAGE_TAG}"
         docker pull "$DOCKERHUB_USERNAME/fincloud-frontend:${IMAGE_TAG}"
 
-        # Install envsubst if not available
-        sudo apt-get update -qq && sudo apt-get install -y -qq gettext-base || true
+        # Install envsubst if not available (check first, then install without sudo if needed)
+        if ! command -v envsubst &> /dev/null; then
+          echo "⚠️ envsubst not found, trying to install..."
+          # Try without sudo first (if user has permissions)
+          apt-get update -qq && apt-get install -y -qq gettext-base 2>/dev/null || \
+          sudo apt-get update -qq && sudo apt-get install -y -qq gettext-base || \
+          echo "⚠️ Could not install envsubst, will try alternative method"
+        fi
 
         # Substitute environment variables in docker-compose file
         # Explicitly specify which variables to substitute
-        envsubst '${DOCKERHUB_USERNAME} ${IMAGE_TAG}' < docker-compose.swarm-simple.yml > docker-compose.swarm-deploy.yml
+        if command -v envsubst &> /dev/null; then
+          envsubst '${DOCKERHUB_USERNAME} ${IMAGE_TAG}' < docker-compose.swarm-simple.yml > docker-compose.swarm-deploy.yml
+        else
+          # Fallback: use sed if envsubst is not available
+          echo "⚠️ Using sed as fallback for variable substitution"
+          sed "s/\${DOCKERHUB_USERNAME}/${DOCKERHUB_USERNAME}/g; s/\${IMAGE_TAG}/${IMAGE_TAG}/g" docker-compose.swarm-simple.yml > docker-compose.swarm-deploy.yml
+        fi
         
         # Verify substitution worked
         echo "✅ Checking substituted values..."
         grep "image:" docker-compose.swarm-deploy.yml | head -5
 
+        # Remove old stack if exists (to avoid "update out of sequence" error)
+        echo "🔄 Checking for existing stack..."
+        if docker stack ls | grep -q "fincloud"; then
+          echo "⚠️ Stack 'fincloud' exists, removing old stack..."
+          docker stack rm fincloud
+          echo "⏳ Waiting for stack removal..."
+          sleep 10
+          # Wait until stack is fully removed
+          while docker stack ls | grep -q "fincloud"; do
+            echo "⏳ Still removing stack..."
+            sleep 5
+          done
+          echo "✅ Old stack removed"
+        fi
+
         # Deploy stack
+        echo "🚀 Deploying new stack..."
         docker stack deploy --with-registry-auth -c docker-compose.swarm-deploy.yml fincloud
 
         # Verify deployment
         echo "✅ Waiting for services to start..."
-        sleep 5
+        sleep 10
         docker stack services fincloud
         docker service ls
     
