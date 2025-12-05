@@ -224,13 +224,13 @@ jobs:
         
         # Test service imports
         echo "Testing service imports..."
-        cd auth-service && python -c "from app.main import app; print('Auth service: OK')" && cd ..
-        cd finance-service && python -c "from app.main import app; print('Finance service: OK')" && cd ..
-        cd report-service && python -c "from app.main import app; print('Report service: OK')" && cd ..
+        (cd auth-service && python -c "from app.main import app; print('Auth service: OK')")
+        (cd finance-service && python -c "from app.main import app; print('Finance service: OK')")
+        (cd report-service && python -c "from app.main import app; print('Report service: OK')")
         
         # Test service health endpoints
         echo "Testing service health endpoints..."
-        cd auth-service && python -c "
+        (cd auth-service && python -c "
         from fastapi.testclient import TestClient
         from app.main import app
         import time
@@ -242,10 +242,10 @@ jobs:
             if i == 0:
                 print(f'Auth health: {response.status_code}')
             time.sleep(0.05)
-                print('Auth service health: OK (5 checks)')
-        " && cd ..
+        print('Auth service health: OK (5 checks)')
+        ")
         
-        cd finance-service && python -c "
+        (cd finance-service && python -c "
         from fastapi.testclient import TestClient
         from app.main import app
         import time
@@ -257,10 +257,10 @@ jobs:
             if i == 0:
                 print(f'Finance health: {response.status_code}')
             time.sleep(0.05)
-                print('Finance service health: OK (5 checks)')
-        " && cd ..
+        print('Finance service health: OK (5 checks)')
+        ")
         
-        cd report-service && python -c "
+        (cd report-service && python -c "
         from fastapi.testclient import TestClient
         from app.main import app
         import time
@@ -272,8 +272,8 @@ jobs:
             if i == 0:
                 print(f'Report health: {response.status_code}')
             time.sleep(0.05)
-                print('Report service health: OK (5 checks)')
-        " && cd ..
+        print('Report service health: OK (5 checks)')
+        ")
     
     - name: Integration test summary
       run: |
