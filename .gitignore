@@ -68,6 +68,26 @@ text.txt
 CI-CD-EXPLANATION.md
 TEST-REPORT.md
 
+# Markdown documentation files (except README.md)
+*.md
+!README.md
+!tests/README.md
+
+# Video files
+*.mp4
+*.avi
+*.mov
+*.wmv
+*.flv
+*.webm
+*.mkv
+*.m4v
+*.3gp
+*.mpg
+*.mpeg
+*.vob
+*.ogv
+
 # Windows batch files (local helpers)
 start.bat
 stop.bat
