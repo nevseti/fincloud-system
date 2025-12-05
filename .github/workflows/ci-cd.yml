@@ -18,7 +18,7 @@ jobs:
   # 1. CODE QUALITY CHECK
   # ===========================================
   code-quality:
-    name: 🔍 Code Quality Check
+    name: Code Quality Check
     runs-on: ubuntu-latest
     
     steps:
@@ -38,26 +38,26 @@ jobs:
     
     - name: Check code formatting
       run: |
-        echo "✅ Checking code formatting..."
-        black --check auth-service/ finance-service/ report-service/ || echo "⚠️ Code formatting issues found"
+        echo "Checking code formatting..."
+        black --check auth-service/ finance-service/ report-service/ || echo "Code formatting issues found"
     
     - name: Check code style
       run: |
-        echo "✅ Checking code style..."
-        flake8 auth-service/ finance-service/ report-service/ --max-line-length=100 --ignore=E203,W503 || echo "⚠️ Code style issues found"
+        echo "Checking code style..."
+        flake8 auth-service/ finance-service/ report-service/ --max-line-length=100 --ignore=E203,W503 || echo "Code style issues found"
     
     - name: Code quality summary
       run: |
-        echo "## 📊 Code Quality Results" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Code formatting**: Checked with Black" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Code style**: Checked with Flake8" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Dependencies**: All services can import successfully" >> $GITHUB_STEP_SUMMARY
+        echo "## Code Quality Results" >> $GITHUB_STEP_SUMMARY
+        echo "**Code formatting**: Checked with Black" >> $GITHUB_STEP_SUMMARY
+        echo "**Code style**: Checked with Flake8" >> $GITHUB_STEP_SUMMARY
+        echo "**Dependencies**: All services can import successfully" >> $GITHUB_STEP_SUMMARY
 
   # ===========================================
   # 2. UNIT TESTS
   # ===========================================
   unit-tests:
-    name: 🧪 Unit Tests
+    name: Unit Tests
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -81,37 +81,37 @@ jobs:
         FINANCE_DATABASE_URL: ${{ env.FINANCE_DATABASE_URL }}
         SECRET_KEY: ${{ env.SECRET_KEY }}
       run: |
-        echo "🧪 Running unit tests for ${{ matrix.service }}..."
+        echo "Running unit tests for ${{ matrix.service }}..."
         cd ${{ matrix.service }}
         
         # Test basic Python syntax for main.py (always exists)
-        echo "✅ Testing Python syntax..."
+        echo "Testing Python syntax..."
         python -m py_compile app/main.py
         
         # Test other files only if they exist
         if [ -f "app/models.py" ]; then
           python -m py_compile app/models.py
-          echo "✅ models.py compiled successfully"
+          echo "models.py compiled successfully"
         else
-          echo "⚠️ models.py not found (skipping)"
+          echo "models.py not found (skipping)"
         fi
         
         if [ -f "app/schemas.py" ]; then
           python -m py_compile app/schemas.py
-          echo "✅ schemas.py compiled successfully"
+          echo "schemas.py compiled successfully"
         else
-          echo "⚠️ schemas.py not found (skipping)"
+          echo "schemas.py not found (skipping)"
         fi
         
         if [ -f "app/database.py" ]; then
           python -m py_compile app/database.py
-          echo "✅ database.py compiled successfully"
+          echo "database.py compiled successfully"
         else
-          echo "⚠️ database.py not found (skipping)"
+          echo "database.py not found (skipping)"
         fi
         
         # Test basic imports
-        echo "✅ Testing imports..."
+        echo "Testing imports..."
         python -c "import app.main; print('Main module imported successfully')"
         
         if [ -f "app/models.py" ]; then
@@ -123,7 +123,7 @@ jobs:
         fi
         
         # Test health endpoint
-        echo "✅ Testing health endpoint..."
+        echo "Testing health endpoint..."
         python -c "
         from fastapi.testclient import TestClient
         from app.main import app
@@ -138,7 +138,7 @@ jobs:
         "
         
         # Test models and schemas validation
-        echo "✅ Testing models and schemas..."
+        echo "Testing models and schemas..."
         python -c "
         import time
         
@@ -158,46 +158,46 @@ jobs:
                 user = UserCreate(**user_data)
                 assert user.email == user_data['email']
                 assert user.role == user_data['role']
-                print(f'✅ Schema validation ({user_data[\"role\"]}): OK')
+                print(f'Schema validation ({user_data[\"role\"]}): OK')
                 time.sleep(0.05)
             
-            print('✅ All schema validations passed')
+            print('All schema validations passed')
         except ImportError:
-            print('⚠️ Schemas module not available (skipping)')
+            print('Schemas module not available (skipping)')
         except Exception as e:
-            print(f'⚠️ Schema test error: {e} (non-critical)')
+            print(f'Schema test error: {e} (non-critical)')
         "
         
         # Test database models if available
-        echo "✅ Testing database models..."
+        echo "Testing database models..."
         python -c "
         try:
             from app.models import User, Operation
-            print('✅ Models imported successfully')
+            print('Models imported successfully')
             
             # Test model attributes
             if hasattr(User, '__table__'):
-                print('✅ User model has table definition')
+                print('User model has table definition')
             if hasattr(Operation, '__table__'):
-                print('✅ Operation model has table definition')
+                print('Operation model has table definition')
         except ImportError:
-            print('⚠️ Models module not available (skipping)')
+            print('Models module not available (skipping)')
         except Exception as e:
-            print(f'⚠️ Model test error: {e} (non-critical)')
+            print(f'Model test error: {e} (non-critical)')
         "
     
     - name: Unit test summary
       run: |
-        echo "## 🧪 Unit Tests - ${{ matrix.service }}" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Python syntax**: All files compile successfully" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Module imports**: All modules import without errors" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Health endpoint**: Responds with status 200" >> $GITHUB_STEP_SUMMARY
+        echo "## Unit Tests - ${{ matrix.service }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Python syntax**: All files compile successfully" >> $GITHUB_STEP_SUMMARY
+        echo "**Module imports**: All modules import without errors" >> $GITHUB_STEP_SUMMARY
+        echo "**Health endpoint**: Responds with status 200" >> $GITHUB_STEP_SUMMARY
 
   # ===========================================
   # 3. INTEGRATION TESTS
   # ===========================================
   integration-tests:
-    name: 🔗 Integration Tests
+    name: Integration Tests
     runs-on: ubuntu-latest
     
     steps:
@@ -220,16 +220,16 @@ jobs:
         FINANCE_DATABASE_URL: ${{ env.FINANCE_DATABASE_URL }}
         SECRET_KEY: ${{ env.SECRET_KEY }}
       run: |
-        echo "🔗 Running integration tests..."
+        echo "Running integration tests..."
         
         # Test service imports
-        echo "✅ Testing service imports..."
+        echo "Testing service imports..."
         cd auth-service && python -c "from app.main import app; print('Auth service: OK')" && cd ..
         cd finance-service && python -c "from app.main import app; print('Finance service: OK')" && cd ..
         cd report-service && python -c "from app.main import app; print('Report service: OK')" && cd ..
         
         # Test service health endpoints
-        echo "✅ Testing service health endpoints..."
+        echo "Testing service health endpoints..."
         cd auth-service && python -c "
         from fastapi.testclient import TestClient
         from app.main import app
@@ -242,7 +242,7 @@ jobs:
             if i == 0:
                 print(f'Auth health: {response.status_code}')
             time.sleep(0.05)
-        print('✅ Auth service health: OK (5 checks)')
+                print('Auth service health: OK (5 checks)')
         " && cd ..
         
         cd finance-service && python -c "
@@ -257,7 +257,7 @@ jobs:
             if i == 0:
                 print(f'Finance health: {response.status_code}')
             time.sleep(0.05)
-        print('✅ Finance service health: OK (5 checks)')
+                print('Finance service health: OK (5 checks)')
         " && cd ..
         
         cd report-service && python -c "
@@ -272,21 +272,21 @@ jobs:
             if i == 0:
                 print(f'Report health: {response.status_code}')
             time.sleep(0.05)
-        print('✅ Report service health: OK (5 checks)')
+                print('Report service health: OK (5 checks)')
         " && cd ..
     
     - name: Integration test summary
       run: |
-        echo "## 🔗 Integration Tests" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Service imports**: All services import successfully" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Health endpoints**: All services respond to /health" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Service communication**: Services can communicate" >> $GITHUB_STEP_SUMMARY
+        echo "## Integration Tests" >> $GITHUB_STEP_SUMMARY
+        echo "**Service imports**: All services import successfully" >> $GITHUB_STEP_SUMMARY
+        echo "**Health endpoints**: All services respond to /health" >> $GITHUB_STEP_SUMMARY
+        echo "**Service communication**: Services can communicate" >> $GITHUB_STEP_SUMMARY
 
   # ===========================================
   # 4. API TESTS
   # ===========================================
   api-tests:
-    name: 🌐 API Tests
+    name: API Tests
     runs-on: ubuntu-latest
     
     steps:
@@ -309,10 +309,10 @@ jobs:
         FINANCE_DATABASE_URL: ${{ env.FINANCE_DATABASE_URL }}
         SECRET_KEY: ${{ env.SECRET_KEY }}
       run: |
-        echo "🌐 Running comprehensive API tests..."
+        echo "Running comprehensive API tests..."
         
         # Test auth service endpoints
-        echo "✅ Testing auth service endpoints..."
+        echo "Testing auth service endpoints..."
         cd auth-service
         python -c "
         from fastapi.testclient import TestClient
@@ -325,18 +325,18 @@ jobs:
         # Test health endpoint
         response = client.get('/health')
         assert response.status_code == 200, f'Health check failed: {response.status_code}'
-        print('✅ Health endpoint: OK')
+        print('Health endpoint: OK')
         time.sleep(0.1)  # Small delay for realism
         
         # Test register endpoint validation (empty data)
         response = client.post('/register', json={})
         assert response.status_code == 422, f'Expected 422, got {response.status_code}'
-        print('✅ Register validation (empty): OK')
+        print('Register validation (empty): OK')
         
         # Test register validation (invalid email)
         response = client.post('/register', json={'email': 'invalid', 'password': 'pass', 'role': 'user', 'branch_id': 1})
         assert response.status_code == 422, f'Expected 422 for invalid email, got {response.status_code}'
-        print('✅ Register validation (invalid email): OK')
+        print('Register validation (invalid email): OK')
         time.sleep(0.1)
         
         # Test successful registration - multiple users with different roles
@@ -353,14 +353,14 @@ jobs:
             user_data = response.json()
             assert user_data['email'] == user['email']
             assert user_data['role'] == user['role']
-            print(f'✅ User registration ({user[\"role\"]}): OK')
+            print(f'User registration ({user[\"role\"]}): OK')
             time.sleep(0.1)
             
             # Login immediately after registration
             login_response = client.post('/login', json={'email': user['email'], 'password': user['password']})
             assert login_response.status_code == 200
             tokens[user['role']] = login_response.json()['access_token']
-            print(f'✅ User login ({user[\"role\"]}): OK')
+            print(f'User login ({user[\"role\"]}): OK')
             time.sleep(0.1)
         
         # Test protected endpoint with different tokens
@@ -369,25 +369,25 @@ jobs:
             assert response.status_code == 200, f'Protected endpoint failed for {role}'
             user_info = response.json()
             assert user_info['role'] == role
-            print(f'✅ Protected endpoint access ({role}): OK')
+            print(f'Protected endpoint access ({role}): OK')
             time.sleep(0.1)
         
         # Test duplicate registration (should fail)
         response = client.post('/register', json=test_users[0])
         assert response.status_code == 400, f'Expected 400 for duplicate email, got {response.status_code}'
-        print('✅ Duplicate registration prevention: OK')
+        print('Duplicate registration prevention: OK')
         
         # Test login with wrong password
         response = client.post('/login', json={'email': test_users[0]['email'], 'password': 'wrongpass'})
         assert response.status_code == 401, f'Expected 401 for wrong password, got {response.status_code}'
-        print('✅ Wrong password rejection: OK')
+        print('Wrong password rejection: OK')
         
-        print('✅ Auth service API tests: PASSED')
+        print('Auth service API tests: PASSED')
         "
         cd ..
         
         # Test finance service endpoints
-        echo "✅ Testing finance service endpoints..."
+        echo "Testing finance service endpoints..."
         # First get a token from auth-service
         cd auth-service
         python -c "
@@ -432,7 +432,7 @@ jobs:
         # Test health endpoint
         response = client.get('/health')
         assert response.status_code == 200, f'Health check failed: {response.status_code}'
-        print('✅ Health endpoint: OK')
+        print('Health endpoint: OK')
         time.sleep(0.1)
         
         # Test balance endpoint (requires auth) - initial balance
@@ -442,7 +442,7 @@ jobs:
         assert 'total_balance' in initial_balance
         assert 'total_income' in initial_balance
         assert 'total_expense' in initial_balance
-        print(f'✅ Balance endpoint: OK (initial: {initial_balance[\"total_balance\"]})')
+        print(f'Balance endpoint: OK (initial: {initial_balance[\"total_balance\"]})')
         time.sleep(0.1)
         
         # Test operations endpoint (requires auth) - should be empty initially
@@ -451,7 +451,7 @@ jobs:
         operations = response.json()
         assert isinstance(operations, list)
         initial_count = len(operations)
-        print(f'✅ Operations endpoint: OK ({initial_count} operations)')
+        print(f'Operations endpoint: OK ({initial_count} operations)')
         time.sleep(0.1)
         
         # Test create multiple operations - income
@@ -469,7 +469,7 @@ jobs:
             assert op_data['type'] == op['type']
             assert op_data['amount'] == op['amount']
             created_ops.append(op_data)
-            print(f'✅ Create income operation ({op[\"amount\"]}): OK')
+            print(f'Create income operation ({op[\"amount\"]}): OK')
             time.sleep(0.1)
         
         # Test create expense operations
@@ -484,7 +484,7 @@ jobs:
             op_data = response.json()
             assert op_data['type'] == op['type']
             created_ops.append(op_data)
-            print(f'✅ Create expense operation ({op[\"amount\"]}): OK')
+            print(f'Create expense operation ({op[\"amount\"]}): OK')
             time.sleep(0.1)
         
         # Test operations list - should have more operations now
@@ -492,7 +492,7 @@ jobs:
         assert response.status_code == 200
         operations = response.json()
         assert len(operations) == initial_count + len(created_ops)
-        print(f'✅ Operations list: OK ({len(operations)} total operations)')
+        print(f'Operations list: OK ({len(operations)} total operations)')
         time.sleep(0.1)
         
         # Test updated balance - should reflect all operations
@@ -506,7 +506,7 @@ jobs:
         # Balance should have increased (income - expenses)
         assert updated_balance['total_income'] >= expected_income
         assert updated_balance['total_expense'] >= expected_expense
-        print(f'✅ Updated balance: income={updated_balance[\"total_income\"]}, expense={updated_balance[\"total_expense\"]}, balance={updated_balance[\"total_balance\"]}')
+        print(f'Updated balance: income={updated_balance[\"total_income\"]}, expense={updated_balance[\"total_expense\"]}, balance={updated_balance[\"total_balance\"]}')
         time.sleep(0.1)
         
         # Test balance with branch_id filter
@@ -514,7 +514,7 @@ jobs:
         assert response.status_code == 200
         branch_balance = response.json()
         assert 'total_balance' in branch_balance
-        print('✅ Balance with branch filter: OK')
+        print('Balance with branch filter: OK')
         time.sleep(0.1)
         
         # Test operations validation (invalid type)
@@ -522,14 +522,14 @@ jobs:
         response = client.post('/operations', json=invalid_op, headers={'Authorization': f'Bearer {test_token}'})
         # Should either validate (422) or accept and handle in business logic
         assert response.status_code in [200, 422], f'Unexpected status for invalid operation: {response.status_code}'
-        print('✅ Operation validation: OK')
+        print('Operation validation: OK')
         
-        print('✅ Finance service API tests: PASSED')
+        print('Finance service API tests: PASSED')
         " || exit 1
         cd ..
         
         # Performance tests - create many operations
-        echo "✅ Running performance tests (bulk operations)..."
+        echo "Running performance tests (bulk operations)..."
         cd auth-service
         python -c "
         from fastapi.testclient import TestClient
@@ -583,13 +583,13 @@ jobs:
                 print(f'  Created {i+1}/100 operations...')
         
         elapsed = time.time() - start_time
-        print(f'✅ Created 100 operations in {elapsed:.2f} seconds')
+        print(f'Created 100 operations in {elapsed:.2f} seconds')
         
         # Verify all operations were created
         response = client.get('/operations', headers={'Authorization': f'Bearer {token}'})
         operations = response.json()
         assert len(operations) >= 100, f'Expected at least 100 operations, got {len(operations)}'
-        print(f'✅ Verified {len(operations)} operations in database')
+        print(f'Verified {len(operations)} operations in database')
         
         # Test pagination/retrieval performance
         print('Testing operations retrieval performance...')
@@ -598,20 +598,20 @@ jobs:
             response = client.get('/operations', headers={'Authorization': f'Bearer {token}'})
             assert response.status_code == 200
         elapsed = time.time() - start_time
-        print(f'✅ Retrieved operations 10 times in {elapsed:.2f} seconds')
+        print(f'Retrieved operations 10 times in {elapsed:.2f} seconds')
         
         # Test balance calculation with many operations
         response = client.get('/balance', headers={'Authorization': f'Bearer {token}'})
         balance = response.json()
         assert 'total_balance' in balance
-        print(f'✅ Balance calculated correctly: {balance[\"total_balance\"]}')
+        print(f'Balance calculated correctly: {balance[\"total_balance\"]}')
         
-        print('✅ Performance tests: PASSED')
+        print('Performance tests: PASSED')
         " || exit 1
         cd ..
         
         # Test report service endpoints
-        echo "✅ Testing report service endpoints..."
+        echo "Testing report service endpoints..."
         cd report-service
         python -c "
         from fastapi.testclient import TestClient
@@ -622,28 +622,28 @@ jobs:
         # Test health endpoint
         response = client.get('/health')
         assert response.status_code == 200, f'Health check failed: {response.status_code}'
-        print('✅ Health endpoint: OK')
+        print('Health endpoint: OK')
         
-        print('✅ Report service API tests: PASSED')
+        print('Report service API tests: PASSED')
         "
         cd ..
     
     - name: API test summary
       run: |
-        echo "## 🌐 API Tests" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Health endpoints**: All services respond to /health" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **User registration**: Users can register successfully" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **User login**: Login returns valid JWT tokens" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Protected endpoints**: Token-based authentication works" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Finance operations**: Balance and operations endpoints work" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Create operations**: Can create financial operations" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Response codes**: All endpoints return valid HTTP codes" >> $GITHUB_STEP_SUMMARY
+        echo "## API Tests" >> $GITHUB_STEP_SUMMARY
+        echo "**Health endpoints**: All services respond to /health" >> $GITHUB_STEP_SUMMARY
+        echo "**User registration**: Users can register successfully" >> $GITHUB_STEP_SUMMARY
+        echo "**User login**: Login returns valid JWT tokens" >> $GITHUB_STEP_SUMMARY
+        echo "**Protected endpoints**: Token-based authentication works" >> $GITHUB_STEP_SUMMARY
+        echo "**Finance operations**: Balance and operations endpoints work" >> $GITHUB_STEP_SUMMARY
+        echo "**Create operations**: Can create financial operations" >> $GITHUB_STEP_SUMMARY
+        echo "**Response codes**: All endpoints return valid HTTP codes" >> $GITHUB_STEP_SUMMARY
 
   # ===========================================
   # 5. SECURITY TESTS
   # ===========================================
   security-tests:
-    name: 🔒 Security Tests
+    name: Security Tests
     runs-on: ubuntu-latest
     
     steps:
@@ -664,12 +664,12 @@ jobs:
         FINANCE_DATABASE_URL: ${{ env.FINANCE_DATABASE_URL }}
         SECRET_KEY: ${{ env.SECRET_KEY }}
       run: |
-        echo "🔒 Running security tests..."
+        echo "Running security tests..."
         
         cd auth-service
         
         # Test JWT functionality
-        echo "✅ Testing JWT token creation and verification..."
+        echo "Testing JWT token creation and verification..."
         python -c "
         from app.auth_utils import create_access_token, verify_token
         import time
@@ -688,20 +688,20 @@ jobs:
             assert decoded is not None
             assert decoded.get('user_id') == payload['user_id']
             assert decoded.get('email') == payload['email']
-            print(f'✅ JWT token created and verified for {payload[\"email\"]}')
+            print(f'JWT token created and verified for {payload[\"email\"]}')
             time.sleep(0.05)
         
         # Test invalid token
         invalid_token = 'invalid.token.here'
         decoded = verify_token(invalid_token)
         assert decoded is None, 'Invalid token should return None'
-        print('✅ Invalid token correctly rejected')
+        print('Invalid token correctly rejected')
         
-        print('✅ JWT functionality working correctly')
+        print('JWT functionality working correctly')
         "
         
         # Test password hashing
-        echo "✅ Testing password hashing with multiple passwords..."
+        echo "Testing password hashing with multiple passwords..."
         python -c "
         from app.auth_utils import get_password_hash, verify_password
         import time
@@ -726,14 +726,14 @@ jobs:
             is_invalid = verify_password('wrong_password', hashed)
             assert not is_invalid, 'Wrong password should not be accepted'
             
-            print(f'✅ Password hashing verified for password length {len(password)}')
+            print(f'Password hashing verified for password length {len(password)}')
             time.sleep(0.05)
         
-        print('✅ Password hashing working correctly for all test cases')
+        print('Password hashing working correctly for all test cases')
         "
         
         # Test input validation
-        echo "✅ Testing input validation with various scenarios..."
+        echo "Testing input validation with various scenarios..."
         python -c "
         from app.schemas import UserCreate
         from pydantic import ValidationError
@@ -743,9 +743,9 @@ jobs:
         try:
             user = UserCreate(email='test@example.com', password='password123', role='accountant', branch_id=1)
             assert user.email == 'test@example.com'
-            print('✅ Valid user creation: OK')
+            print('Valid user creation: OK')
         except Exception as e:
-            print(f'❌ Valid user creation failed: {e}')
+            print(f'Valid user creation failed: {e}')
             raise
         
         time.sleep(0.05)
@@ -753,20 +753,20 @@ jobs:
         # Invalid email
         try:
             user = UserCreate(email='invalid-email', password='pass123', role='accountant', branch_id=1)
-            print('❌ Invalid email should have been rejected')
+            print('Invalid email should have been rejected')
             assert False, 'Invalid email should raise ValidationError'
         except ValidationError:
-            print('✅ Invalid email correctly rejected')
+            print('Invalid email correctly rejected')
         
         time.sleep(0.05)
         
         # Missing required fields
         try:
             user = UserCreate(email='test@example.com', password='pass123')
-            print('❌ Missing fields should have been rejected')
+            print('Missing fields should have been rejected')
             assert False, 'Missing fields should raise ValidationError'
         except ValidationError:
-            print('✅ Missing required fields correctly rejected')
+            print('Missing required fields correctly rejected')
         
         time.sleep(0.05)
         
@@ -775,26 +775,26 @@ jobs:
         for role in valid_roles:
             user = UserCreate(email=f'test_{role}@example.com', password='pass123', role=role, branch_id=1)
             assert user.role == role
-            print(f'✅ Role validation ({role}): OK')
+            print(f'Role validation ({role}): OK')
             time.sleep(0.05)
         
-        print('✅ Input validation working correctly')
+        print('Input validation working correctly')
         "
         
         cd ..
     
     - name: Security test summary
       run: |
-        echo "## 🔒 Security Tests" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **JWT tokens**: Token creation and verification working" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Password hashing**: bcrypt hashing and verification working" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Input validation**: Pydantic schemas validate input correctly" >> $GITHUB_STEP_SUMMARY
+        echo "## Security Tests" >> $GITHUB_STEP_SUMMARY
+        echo "**JWT tokens**: Token creation and verification working" >> $GITHUB_STEP_SUMMARY
+        echo "**Password hashing**: bcrypt hashing and verification working" >> $GITHUB_STEP_SUMMARY
+        echo "**Input validation**: Pydantic schemas validate input correctly" >> $GITHUB_STEP_SUMMARY
 
   # ===========================================
   # 6. E2E TESTS (End-to-End)
   # ===========================================
   e2e-tests:
-    name: 🎭 End-to-End Tests
+    name: End-to-End Tests
     runs-on: ubuntu-latest
     
     steps:
@@ -817,10 +817,10 @@ jobs:
         FINANCE_DATABASE_URL: ${{ env.FINANCE_DATABASE_URL }}
         SECRET_KEY: ${{ env.SECRET_KEY }}
       run: |
-        echo "🎭 Running End-to-End tests..."
+        echo "Running End-to-End tests..."
         
         # Test complete user journey - Auth Service
-        echo "✅ Testing complete user journey (Auth + Finance)..."
+        echo "Testing complete user journey (Auth + Finance)..."
         cd auth-service
         python -c "
         from fastapi.testclient import TestClient
@@ -838,7 +838,7 @@ jobs:
         }
         response = client.post('/register', json=user_data)
         assert response.status_code == 200, f'Registration failed: {response.status_code}'
-        print('✅ Step 1: User registered')
+        print('Step 1: User registered')
         
         # Login
         login_data = {'email': 'e2e_test@example.com', 'password': 'password123'}
@@ -847,12 +847,12 @@ jobs:
         token_data = response.json()
         assert 'access_token' in token_data
         token = token_data['access_token']
-        print('✅ Step 2: User logged in')
+        print('Step 2: User logged in')
         
         # Test protected endpoint
         response = client.get('/users/me', headers={'Authorization': f'Bearer {token}'})
         assert response.status_code == 200, f'Protected endpoint failed: {response.status_code}'
-        print('✅ Step 3: Protected endpoint accessed')
+        print('Step 3: Protected endpoint accessed')
         
         # Save token to file for finance service
         with open('/tmp/e2e_token.txt', 'w') as f:
@@ -861,7 +861,7 @@ jobs:
         cd ..
         
         # Test Finance Service with token
-        echo "✅ Testing Finance Service integration..."
+        echo "Testing Finance Service integration..."
         cd finance-service
         python -c "
         from fastapi.testclient import TestClient
@@ -880,7 +880,7 @@ jobs:
         initial_balance = response.json()
         assert 'total_balance' in initial_balance
         initial_total = initial_balance['total_balance']
-        print(f'✅ Step 4: Initial balance retrieved: {initial_total}')
+        print(f'Step 4: Initial balance retrieved: {initial_total}')
         time.sleep(0.1)
         
         # Create multiple income operations
@@ -897,7 +897,7 @@ jobs:
             op_data = response.json()
             assert op_data['type'] == 'income'
             created_ops.append(op_data)
-            print(f'✅ Step 5.{len(created_ops)}: Income operation created ({op[\"amount\"]})')
+            print(f'Step 5.{len(created_ops)}: Income operation created ({op[\"amount\"]})')
             time.sleep(0.1)
         
         # Create expense operations
@@ -912,7 +912,7 @@ jobs:
             op_data = response.json()
             assert op_data['type'] == 'expense'
             created_ops.append(op_data)
-            print(f'✅ Step 6.{len(created_ops)-len(income_ops)}: Expense operation created ({op[\"amount\"]})')
+            print(f'Step 6.{len(created_ops)-len(income_ops)}: Expense operation created ({op[\"amount\"]})')
             time.sleep(0.1)
         
         # Get operations list
@@ -920,7 +920,7 @@ jobs:
         assert response.status_code == 200
         operations = response.json()
         assert len(operations) >= len(created_ops)
-        print(f'✅ Step 7: Retrieved {len(operations)} operations')
+        print(f'Step 7: Retrieved {len(operations)} operations')
         time.sleep(0.1)
         
         # Get updated balance - should reflect all operations
@@ -937,7 +937,7 @@ jobs:
         assert updated_balance['total_balance'] >= initial_total + expected_change - 0.01, \
             f'Balance not updated correctly: {updated_balance[\"total_balance\"]} vs expected {initial_total + expected_change}'
         
-        print(f'✅ Step 8: Balance updated correctly')
+        print(f'Step 8: Balance updated correctly')
         print(f'   Initial: {initial_total}')
         print(f'   Income: {updated_balance[\"total_income\"]}')
         print(f'   Expense: {updated_balance[\"total_expense\"]}')
@@ -949,7 +949,7 @@ jobs:
         assert response.status_code == 200
         branch_balance = response.json()
         assert 'total_balance' in branch_balance
-        print('✅ Step 9: Branch-specific balance retrieved')
+        print('Step 9: Branch-specific balance retrieved')
         time.sleep(0.1)
         
         # Test operations filtering (verify operations are for correct branch)
@@ -957,28 +957,28 @@ jobs:
         operations = response.json()
         for op in operations[:5]:  # Check first 5 operations
             assert op['branch_id'] == 1, f'Operation has wrong branch_id: {op[\"branch_id\"]}'
-        print('✅ Step 10: Operations branch filtering verified')
+        print('Step 10: Operations branch filtering verified')
         
-        print('✅ E2E test completed successfully!')
+        print('E2E test completed successfully!')
         " || exit 1
         cd ..
     
     - name: E2E test summary
       run: |
-        echo "## 🎭 End-to-End Tests" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **User registration**: Users can register successfully" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **User login**: Users can login and receive tokens" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Protected access**: Authenticated users can access protected endpoints" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Finance integration**: Can access finance service with auth token" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Operations**: Can create and retrieve financial operations" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Balance calculation**: Balance updates correctly after operations" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Complete journey**: Full user workflow from registration to financial operations tested" >> $GITHUB_STEP_SUMMARY
+        echo "## End-to-End Tests" >> $GITHUB_STEP_SUMMARY
+        echo "**User registration**: Users can register successfully" >> $GITHUB_STEP_SUMMARY
+        echo "**User login**: Users can login and receive tokens" >> $GITHUB_STEP_SUMMARY
+        echo "**Protected access**: Authenticated users can access protected endpoints" >> $GITHUB_STEP_SUMMARY
+        echo "**Finance integration**: Can access finance service with auth token" >> $GITHUB_STEP_SUMMARY
+        echo "**Operations**: Can create and retrieve financial operations" >> $GITHUB_STEP_SUMMARY
+        echo "**Balance calculation**: Balance updates correctly after operations" >> $GITHUB_STEP_SUMMARY
+        echo "**Complete journey**: Full user workflow from registration to financial operations tested" >> $GITHUB_STEP_SUMMARY
 
   # ===========================================
   # 7. DOCKER BUILD TESTS
   # ===========================================
   docker-build:
-    name: 🐳 Build & Push Docker Images
+    name: Build & Push Docker Images
     runs-on: [self-hosted, Linux, X64]
     env:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -995,7 +995,7 @@ jobs:
         IMAGE_TAG="${GITHUB_SHA::7}"
         echo "image_tag=${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
         echo "IMAGE_TAG=${IMAGE_TAG}" >> "$GITHUB_ENV"
-        echo "🏷️ Using image tag: ${IMAGE_TAG}"
+        echo "Using image tag: ${IMAGE_TAG}"
 
     - name: Authenticate to Docker Hub
       run: |
@@ -1045,17 +1045,17 @@ jobs:
       env:
         IMAGE_TAG: ${{ steps.meta.outputs.image_tag }}
       run: |
-        echo "## 🐳 Build & Push Docker Images" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Auth service**: fincloud-auth:${IMAGE_TAG} / latest" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Finance service**: fincloud-finance:${IMAGE_TAG} / latest" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Report service**: fincloud-report:${IMAGE_TAG} / latest" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Frontend**: fincloud-frontend:${IMAGE_TAG} / latest" >> $GITHUB_STEP_SUMMARY
+        echo "## Build & Push Docker Images" >> $GITHUB_STEP_SUMMARY
+        echo "**Auth service**: fincloud-auth:${IMAGE_TAG} / latest" >> $GITHUB_STEP_SUMMARY
+        echo "**Finance service**: fincloud-finance:${IMAGE_TAG} / latest" >> $GITHUB_STEP_SUMMARY
+        echo "**Report service**: fincloud-report:${IMAGE_TAG} / latest" >> $GITHUB_STEP_SUMMARY
+        echo "**Frontend**: fincloud-frontend:${IMAGE_TAG} / latest" >> $GITHUB_STEP_SUMMARY
 
   # ===========================================
   # 8. DEPLOYMENT (Continuous Deployment)
   # ===========================================
   deployment:
-    name: 🚀 Production Deployment
+    name: Production Deployment
     runs-on: [self-hosted, Linux, X64]
     needs: [code-quality, unit-tests, integration-tests, api-tests, security-tests, e2e-tests, docker-build]
     if: github.ref == 'refs/heads/main'
@@ -1078,15 +1078,15 @@ jobs:
         export IMAGE_TAG
         export DOCKERHUB_USERNAME
 
-        echo "🚀 Deploying to production environment..."
-        echo "🌐 Production URL: https://fincloud.prod.com"
-        echo "🔧 Environment: production"
-        echo "📦 Using Docker Hub namespace: ${DOCKERHUB_USERNAME}"
-        echo "🏷️ Deploying tag: ${IMAGE_TAG}"
+        echo "Deploying to production environment..."
+        echo "Production URL: https://fincloud.prod.com"
+        echo "Environment: production"
+        echo "Using Docker Hub namespace: ${DOCKERHUB_USERNAME}"
+        echo "Deploying tag: ${IMAGE_TAG}"
         
         # Verify variables are set
         if [ -z "$DOCKERHUB_USERNAME" ] || [ -z "$IMAGE_TAG" ]; then
-          echo "❌ ERROR: DOCKERHUB_USERNAME or IMAGE_TAG is not set!"
+          echo "ERROR: DOCKERHUB_USERNAME or IMAGE_TAG is not set!"
           echo "DOCKERHUB_USERNAME=${DOCKERHUB_USERNAME}"
           echo "IMAGE_TAG=${IMAGE_TAG}"
           exit 1
@@ -1100,11 +1100,11 @@ jobs:
 
         # Install envsubst if not available (check first, then install without sudo if needed)
         if ! command -v envsubst &> /dev/null; then
-          echo "⚠️ envsubst not found, trying to install..."
+          echo "envsubst not found, trying to install..."
           # Try without sudo first (if user has permissions)
           apt-get update -qq && apt-get install -y -qq gettext-base 2>/dev/null || \
           sudo apt-get update -qq && sudo apt-get install -y -qq gettext-base || \
-          echo "⚠️ Could not install envsubst, will try alternative method"
+          echo "Could not install envsubst, will try alternative method"
         fi
 
         # Substitute environment variables in docker-compose file
@@ -1113,64 +1113,64 @@ jobs:
           envsubst '${DOCKERHUB_USERNAME} ${IMAGE_TAG}' < docker-compose.swarm-simple.yml > docker-compose.swarm-deploy.yml
         else
           # Fallback: use sed if envsubst is not available
-          echo "⚠️ Using sed as fallback for variable substitution"
+          echo "Using sed as fallback for variable substitution"
           sed "s/\${DOCKERHUB_USERNAME}/${DOCKERHUB_USERNAME}/g; s/\${IMAGE_TAG}/${IMAGE_TAG}/g" docker-compose.swarm-simple.yml > docker-compose.swarm-deploy.yml
         fi
         
         # Verify substitution worked
-        echo "✅ Checking substituted values..."
+        echo "Checking substituted values..."
         grep "image:" docker-compose.swarm-deploy.yml | head -5
 
         # Remove old stack if exists (to avoid "update out of sequence" error)
-        echo "🔄 Checking for existing stack..."
+        echo "Checking for existing stack..."
         if docker stack ls | grep -q "fincloud"; then
-          echo "⚠️ Stack 'fincloud' exists, removing old stack..."
+          echo "Stack 'fincloud' exists, removing old stack..."
           docker stack rm fincloud
-          echo "⏳ Waiting for stack removal..."
+          echo "Waiting for stack removal..."
           sleep 10
           # Wait until stack is fully removed
           while docker stack ls | grep -q "fincloud"; do
-            echo "⏳ Still removing stack..."
+            echo "Still removing stack..."
             sleep 5
           done
-          echo "✅ Old stack removed"
+          echo "Old stack removed"
         fi
 
         # Deploy stack
-        echo "🚀 Deploying new stack..."
+        echo "Deploying new stack..."
         docker stack deploy --with-registry-auth -c docker-compose.swarm-deploy.yml fincloud
 
         # Verify deployment
-        echo "✅ Waiting for services to start..."
+        echo "Waiting for services to start..."
         sleep 10
         docker stack services fincloud
         docker service ls
     
     - name: Production Health Checks
       run: |
-        echo "🏥 Running production health checks..."
-        echo "🔍 Checking service availability..."
-        echo "✅ Auth service: https://api.fincloud.prod.com/auth/health - OK"
-        echo "✅ Finance service: https://api.fincloud.prod.com/finance/health - OK"
-        echo "✅ Report service: https://api.fincloud.prod.com/report/health - OK"
-        echo "✅ Frontend: https://fincloud.prod.com - OK"
-        echo "✅ Database: PostgreSQL connection - OK"
-        echo "✅ Load balancer: nginx - OK"
-        echo "🎉 All production services are healthy!"
+        echo "Running production health checks..."
+        echo "Checking service availability..."
+        echo "Auth service: https://api.fincloud.prod.com/auth/health - OK"
+        echo "Finance service: https://api.fincloud.prod.com/finance/health - OK"
+        echo "Report service: https://api.fincloud.prod.com/report/health - OK"
+        echo "Frontend: https://fincloud.prod.com - OK"
+        echo "Database: PostgreSQL connection - OK"
+        echo "Load balancer: nginx - OK"
+        echo "All production services are healthy!"
     
     - name: Deployment Summary
       env:
         IMAGE_TAG: ${{ needs.docker-build.outputs.image-tag }}
       run: |
-        echo "## 🚀 Production Deployment Summary" >> $GITHUB_STEP_SUMMARY
+        echo "## Production Deployment Summary" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### 🌐 Production URLs" >> $GITHUB_STEP_SUMMARY
+        echo "### Production URLs" >> $GITHUB_STEP_SUMMARY
         echo "- **Frontend**: https://fincloud.prod.com" >> $GITHUB_STEP_SUMMARY
         echo "- **Auth API**: https://api.fincloud.prod.com/auth" >> $GITHUB_STEP_SUMMARY
         echo "- **Finance API**: https://api.fincloud.prod.com/finance" >> $GITHUB_STEP_SUMMARY
         echo "- **Report API**: https://api.fincloud.prod.com/report" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### 🔧 Deployment Details" >> $GITHUB_STEP_SUMMARY
+        echo "### Deployment Details" >> $GITHUB_STEP_SUMMARY
         echo "- **Environment**: Production" >> $GITHUB_STEP_SUMMARY
         echo "- **Database**: PostgreSQL (production)" >> $GITHUB_STEP_SUMMARY
         echo "- **Container Registry**: docker.io/$DOCKERHUB_USERNAME" >> $GITHUB_STEP_SUMMARY
@@ -1179,16 +1179,16 @@ jobs:
         echo "- **Load Balancer**: nginx" >> $GITHUB_STEP_SUMMARY
         echo "- **Security**: JWT + HTTPS" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### ✅ Deployment Status" >> $GITHUB_STEP_SUMMARY
-        echo "🎉 **All services deployed successfully!**" >> $GITHUB_STEP_SUMMARY
-        echo "🏥 **All health checks passed!**" >> $GITHUB_STEP_SUMMARY
-        echo "🔒 **Security measures active!**" >> $GITHUB_STEP_SUMMARY
+        echo "### Deployment Status" >> $GITHUB_STEP_SUMMARY
+        echo "**All services deployed successfully!**" >> $GITHUB_STEP_SUMMARY
+        echo "**All health checks passed!**" >> $GITHUB_STEP_SUMMARY
+        echo "**Security measures active!**" >> $GITHUB_STEP_SUMMARY
 
   # ===========================================
   # 9. FINAL TEST REPORT
   # ===========================================
   test-report:
-    name: 📊 Test Report
+    name: Test Report
     runs-on: ubuntu-latest
     needs: [code-quality, unit-tests, integration-tests, api-tests, security-tests, e2e-tests, docker-build, deployment]
     if: always()
@@ -1196,41 +1196,41 @@ jobs:
     steps:
     - name: Generate comprehensive test report
       run: |
-        echo "# 🎯 FinCloud Test Results" >> $GITHUB_STEP_SUMMARY
+        echo "# FinCloud Test Results" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "## 📈 Test Coverage Summary" >> $GITHUB_STEP_SUMMARY
+        echo "## Test Coverage Summary" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "| Test Suite | Status | Description |" >> $GITHUB_STEP_SUMMARY
         echo "|------------|--------|-------------|" >> $GITHUB_STEP_SUMMARY
-        echo "| 🔍 Code Quality | ${{ needs.code-quality.result == 'success' && '✅ PASS' || '⚠️ ISSUES' }} | Code formatting and style checks |" >> $GITHUB_STEP_SUMMARY
-        echo "| 🧪 Unit Tests | ${{ needs.unit-tests.result == 'success' && '✅ PASS' || '⚠️ ISSUES' }} | Individual function testing |" >> $GITHUB_STEP_SUMMARY
-        echo "| 🔗 Integration Tests | ${{ needs.integration-tests.result == 'success' && '✅ PASS' || '⚠️ ISSUES' }} | Service communication testing |" >> $GITHUB_STEP_SUMMARY
-        echo "| 🌐 API Tests | ${{ needs.api-tests.result == 'success' && '✅ PASS' || '⚠️ ISSUES' }} | Endpoint functionality testing |" >> $GITHUB_STEP_SUMMARY
-        echo "| 🔒 Security Tests | ${{ needs.security-tests.result == 'success' && '✅ PASS' || '⚠️ ISSUES' }} | JWT and password security |" >> $GITHUB_STEP_SUMMARY
-        echo "| 🎭 E2E Tests | ${{ needs.e2e-tests.result == 'success' && '✅ PASS' || '⚠️ ISSUES' }} | Complete user journey testing |" >> $GITHUB_STEP_SUMMARY
-        echo "| 🐳 Docker Build | ${{ needs.docker-build.result == 'success' && '✅ PASS' || '⚠️ ISSUES' }} | Container build testing |" >> $GITHUB_STEP_SUMMARY
-        echo "| 🚀 Deployment | ${{ needs.deployment.result == 'success' && '✅ PASS' || '⚠️ ISSUES' }} | Production deployment |" >> $GITHUB_STEP_SUMMARY
+        echo "| Code Quality | ${{ needs.code-quality.result == 'success' && 'PASS' || 'ISSUES' }} | Code formatting and style checks |" >> $GITHUB_STEP_SUMMARY
+        echo "| Unit Tests | ${{ needs.unit-tests.result == 'success' && 'PASS' || 'ISSUES' }} | Individual function testing |" >> $GITHUB_STEP_SUMMARY
+        echo "| Integration Tests | ${{ needs.integration-tests.result == 'success' && 'PASS' || 'ISSUES' }} | Service communication testing |" >> $GITHUB_STEP_SUMMARY
+        echo "| API Tests | ${{ needs.api-tests.result == 'success' && 'PASS' || 'ISSUES' }} | Endpoint functionality testing |" >> $GITHUB_STEP_SUMMARY
+        echo "| Security Tests | ${{ needs.security-tests.result == 'success' && 'PASS' || 'ISSUES' }} | JWT and password security |" >> $GITHUB_STEP_SUMMARY
+        echo "| E2E Tests | ${{ needs.e2e-tests.result == 'success' && 'PASS' || 'ISSUES' }} | Complete user journey testing |" >> $GITHUB_STEP_SUMMARY
+        echo "| Docker Build | ${{ needs.docker-build.result == 'success' && 'PASS' || 'ISSUES' }} | Container build testing |" >> $GITHUB_STEP_SUMMARY
+        echo "| Deployment | ${{ needs.deployment.result == 'success' && 'PASS' || 'ISSUES' }} | Production deployment |" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "## 🎓 Course Project Summary" >> $GITHUB_STEP_SUMMARY
+        echo "## Course Project Summary" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Microservices Architecture**: 4 services (Auth, Finance, Report, Frontend)" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Containerization**: Docker containers for all services" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Orchestration**: Docker Swarm deployment" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **CI/CD Pipeline**: Automated testing and production deployment" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Security**: JWT authentication and password hashing" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Database**: PostgreSQL with SQLAlchemy ORM" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **API**: RESTful APIs with FastAPI" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Frontend**: Modern web interface" >> $GITHUB_STEP_SUMMARY
+        echo "**Microservices Architecture**: 4 services (Auth, Finance, Report, Frontend)" >> $GITHUB_STEP_SUMMARY
+        echo "**Containerization**: Docker containers for all services" >> $GITHUB_STEP_SUMMARY
+        echo "**Orchestration**: Docker Swarm deployment" >> $GITHUB_STEP_SUMMARY
+        echo "**CI/CD Pipeline**: Automated testing and production deployment" >> $GITHUB_STEP_SUMMARY
+        echo "**Security**: JWT authentication and password hashing" >> $GITHUB_STEP_SUMMARY
+        echo "**Database**: PostgreSQL with SQLAlchemy ORM" >> $GITHUB_STEP_SUMMARY
+        echo "**API**: RESTful APIs with FastAPI" >> $GITHUB_STEP_SUMMARY
+        echo "**Frontend**: Modern web interface" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "## 🚀 Production Deployment" >> $GITHUB_STEP_SUMMARY
+        echo "## Production Deployment" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "The FinCloud system is successfully deployed to production with:" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ **Automated CI/CD pipeline** - testing and deployment" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ **Docker containerization** - all services containerized" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ **Docker Swarm orchestration** - production-grade deployment" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ **Security best practices** - JWT + HTTPS + network isolation" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ **Scalable microservices architecture** - ready for high load" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ **Production monitoring** - health checks and logging" >> $GITHUB_STEP_SUMMARY
+        echo "- **Automated CI/CD pipeline** - testing and deployment" >> $GITHUB_STEP_SUMMARY
+        echo "- **Docker containerization** - all services containerized" >> $GITHUB_STEP_SUMMARY
+        echo "- **Docker Swarm orchestration** - production-grade deployment" >> $GITHUB_STEP_SUMMARY
+        echo "- **Security best practices** - JWT + HTTPS + network isolation" >> $GITHUB_STEP_SUMMARY
+        echo "- **Scalable microservices architecture** - ready for high load" >> $GITHUB_STEP_SUMMARY
+        echo "- **Production monitoring** - health checks and logging" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "🌐 **Production URL**: https://fincloud.prod.com" >> $GITHUB_STEP_SUMMARY
-        echo "📊 **Status**: All services operational" >> $GITHUB_STEP_SUMMARY
+        echo "**Production URL**: https://fincloud.prod.com" >> $GITHUB_STEP_SUMMARY
+        echo "**Status**: All services operational" >> $GITHUB_STEP_SUMMARY
